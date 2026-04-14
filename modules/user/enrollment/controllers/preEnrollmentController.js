@@ -1,6 +1,7 @@
 import PreEnrollment from "../models/preEnrollmentModel.js";
 import Enrollment from "../models/enrollmentModel.js";
-import { createOtp, verifyOtp } from "../../../otp/otpService.js";
+
+import { createOtp, verifyOtp, resendOtp } from "../../../otp/otpService.js";
 
 // Create Pre-Enrollment & Send EMAIL OTP
 export const startPreEnrollment = async (req, res) => {
@@ -16,16 +17,16 @@ export const startPreEnrollment = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const otpRef = await createOtp({
-      purpose: "EMAIL_VERIFICATION",
-      channel: "EMAIL",
-      target: normalizedEmail,
-    });
-
     const preEnrollment = await PreEnrollment.create({
       email: normalizedEmail,
       enrollmentSource,
-      otpRefs: { email: otpRef },
+      otpReferences: {
+        email: await createOtp({
+          purpose: "EMAIL_VERIFICATION",
+          channel: "EMAIL",
+          target: normalizedEmail,
+        }),
+      },
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
@@ -43,7 +44,7 @@ export const startPreEnrollment = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: "Failed to Start Pre-Enrollment",
+      message: error.message,
     });
   }
 };
@@ -83,9 +84,21 @@ export const verifyEmailOtp = async (req, res) => {
       });
     }
 
-    await verifyOtp(preEnrollment.otpRefs.email, otp);
+    const otpRecord = await verifyOtp({
+      referenceId: preEnrollment.otpReferences.email,
+      otp,
+    });
+
+    if (otpRecord.purpose !== "EMAIL_VERIFICATION") {
+      throw new Error("Invalid OTP type");
+    }
+
+    if (otpRecord.target !== preEnrollment.email) {
+      throw new Error("OTP mismatch");
+    }
 
     preEnrollment.emailVerified = true;
+    preEnrollment.otpReferences.email = null;
     preEnrollment.status = "EMAIL_VERIFIED";
 
     await preEnrollment.save();
@@ -104,7 +117,7 @@ export const verifyEmailOtp = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Email Verification Failed",
+      message: error.message,
     });
   }
 };
@@ -130,15 +143,19 @@ export const sendMobileOtp = async (req, res) => {
       });
     }
 
-    preEnrollment.mobile = mobile;
+    if (preEnrollment.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session expired",
+      });
+    }
 
-    const otpRef = await createOtp({
+    preEnrollment.mobile = mobile;
+    preEnrollment.otpReferences.mobile = await createOtp({
       purpose: "MOBILE_VERIFICATION",
       channel: "WHATSAPP",
       target: mobile.number.trim(),
     });
-
-    preEnrollment.otpRefs.mobile = otpRef;
 
     await preEnrollment.save();
 
@@ -156,7 +173,7 @@ export const sendMobileOtp = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Mobile OTP Generation Failed",
+      message: error.message,
     });
   }
 };
@@ -188,9 +205,28 @@ export const verifyMobileOtp = async (req, res) => {
       });
     }
 
-    await verifyOtp(preEnrollment.otpRefs.mobile, otp);
+    if (preEnrollment.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session expired",
+      });
+    }
+
+    const otpRecord = await verifyOtp({
+      referenceId: preEnrollment.otpReferences.mobile,
+      otp,
+    });
+
+    if (otpRecord.purpose !== "MOBILE_VERIFICATION") {
+      throw new Error("Invalid OTP type");
+    }
+
+    if (otpRecord.target !== preEnrollment.mobile.number) {
+      throw new Error("OTP mismatch");
+    }
 
     preEnrollment.mobileVerified = true;
+    preEnrollment.otpReferences.mobile = null;
     preEnrollment.status = "MOBILE_VERIFIED";
 
     await preEnrollment.save();
@@ -208,7 +244,7 @@ export const verifyMobileOtp = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Mobile Verification Failed",
+      message: error.message,
     });
   }
 };
@@ -231,6 +267,13 @@ export const onboardingConsent = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Pre-Enrollment Not Found",
+      });
+    }
+
+    if (preEnrollment.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session expired",
       });
     }
 
@@ -257,13 +300,11 @@ export const onboardingConsent = async (req, res) => {
 
     // ADMIN → Send OTP
     if (source === "ADMIN") {
-      const otpRef = await createOtp({
+      preEnrollment.otpReferences.consent = await createOtp({
         purpose: "ONBOARDING_CONSENT",
         channel: "EMAIL",
         target: preEnrollment.email,
       });
-
-      preEnrollment.otpRefs.consent = otpRef;
 
       await preEnrollment.save();
 
@@ -287,7 +328,7 @@ export const onboardingConsent = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Onboarding Consent Failed",
+      message: error.message,
     });
   }
 };
@@ -313,16 +354,35 @@ export const verifyOnboardingConsentOtp = async (req, res) => {
       });
     }
 
-    await verifyOtp(preEnrollment.otpRefs.consent, otp);
+    if (preEnrollment.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session expired",
+      });
+    }
+
+    const otpRecord = await verifyOtp({
+      referenceId: preEnrollment.otpReferences.consent,
+      otp,
+    });
+
+    if (otpRecord.purpose !== "ONBOARDING_CONSENT") {
+      throw new Error("Invalid OTP type");
+    }
+
+    if (otpRecord.target !== preEnrollment.email) {
+      throw new Error("OTP mismatch");
+    }
 
     preEnrollment.onboardingConsent = {
       isGranted: true,
       grantedAt: new Date(),
       obtainedVia: "OTP",
       channel: "EMAIL",
-      referenceId: preEnrollment.otpRefs.consent,
+      referenceId: preEnrollment.otpReferences.consent,
     };
 
+    preEnrollment.otpReferences.consent = null;
     preEnrollment.status = "CONSENT_GRANTED";
 
     await preEnrollment.save();
@@ -341,7 +401,7 @@ export const verifyOnboardingConsentOtp = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Consent Verification Failed",
+      message: error.message,
     });
   }
 };
@@ -379,12 +439,28 @@ export const completePreEnrollment = async (req, res) => {
       });
     }
 
+    // Check if email or mobile already exists in DRAFT enrollments
+    const email = preEnrollment.email;
+    const mobile = preEnrollment.mobile?.number;
+
+    const existingEnrollment = await Enrollment.findOne({
+      $or: [{ "auth.email": email }, { "auth.mobile.number": mobile }],
+      enrollmentProgress: "DRAFT",
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json({
+        success: false,
+        message: "Email or Mobile already Exsists",
+      });
+    }
+
     // Generate Identifiers
     const trnId = `TRN-${Date.now()}`;
-    const publicId = `PUB-${Math.random()
+    const publicId = `${Math.random()
       .toString(36)
       .slice(2, 10)
-      .toUpperCase()}`;
+      .toUpperCase()}-${Date.now()}`;
 
     // Create Enrollment Record
     const enrollment = await Enrollment.create({
@@ -435,6 +511,102 @@ export const completePreEnrollment = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Pre-Enrollment Completion Failed",
+    });
+  }
+};
+
+// Resend OTP (for both EMAIL, MOBILE, CONSENT)
+export const resendOtpHandler = async (req, res) => {
+  try {
+    const { preEnrollmentId, type } = req.body || {};
+
+    if (!preEnrollmentId || !type) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing Required Fields",
+      });
+    }
+
+    const preEnrollment = await PreEnrollment.findById(preEnrollmentId);
+
+    if (!preEnrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Pre-Enrollment Not Found",
+      });
+    }
+
+    if (preEnrollment.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session expired",
+      });
+    }
+
+    let referenceId;
+
+    switch (type) {
+      case "EMAIL":
+        if (preEnrollment.emailVerified) {
+          return res.status(400).json({
+            success: false,
+            message: "Email already verified",
+          });
+        }
+        referenceId = preEnrollment.otpReferences?.email;
+        break;
+
+      case "MOBILE":
+        if (preEnrollment.mobileVerified) {
+          return res.status(400).json({
+            success: false,
+            message: "Mobile already verified",
+          });
+        }
+        referenceId = preEnrollment.otpReferences?.mobile;
+        break;
+
+      case "CONSENT":
+        if (preEnrollment.onboardingConsent?.isGranted) {
+          return res.status(400).json({
+            success: false,
+            message: "Consent already granted",
+          });
+        }
+        referenceId = preEnrollment.otpReferences?.consent;
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          message: "Invalid OTP type",
+        });
+    }
+
+    if (!referenceId) {
+      return res.status(400).json({
+        success: false,
+        message: "No OTP found to resend",
+      });
+    }
+
+    await resendOtp(referenceId);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP resent successfully",
+    });
+  } catch (error) {
+    console.error("[resendOtpHandler] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

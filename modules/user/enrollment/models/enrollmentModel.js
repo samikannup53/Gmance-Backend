@@ -59,6 +59,10 @@ const enrollmentSchema = new mongoose.Schema(
         obtainedVia: { type: String, enum: ["OTP", "CHECKBOX"] },
         channel: { type: String, enum: ["MOBILE", "EMAIL", "WEB"] },
         referenceId: String,
+        meta: {
+          ip: String,
+          userAgent: String,
+        },
       },
     },
 

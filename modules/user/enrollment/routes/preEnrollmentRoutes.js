@@ -8,16 +8,18 @@ import {
   onboardingConsent,
   verifyOnboardingConsentOtp,
   completePreEnrollment,
+  resendOtpHandler,
 } from "../controllers/preEnrollmentController.js";
 
-const router = express.Router();
+const ROUTER = express.Router();
 
-router.post("/start", startPreEnrollment);
-router.post("/verify-email-otp", verifyEmailOtp);
-router.post("/send-mobile-otp", sendMobileOtp);
-router.post("/verify-mobile-otp", verifyMobileOtp);
-router.post("/onboarding-consent", onboardingConsent);
-router.post("/verify-onboarding-consent-otp", verifyOnboardingConsentOtp);
-router.post("/complete", completePreEnrollment);
+ROUTER.post("/start", startPreEnrollment);
+ROUTER.post("/verify-email-otp", verifyEmailOtp);
+ROUTER.post("/send-mobile-otp", sendMobileOtp);
+ROUTER.post("/verify-mobile-otp", verifyMobileOtp);
+ROUTER.post("/onboarding-consent", onboardingConsent);
+ROUTER.post("/verify-onboarding-consent-otp", verifyOnboardingConsentOtp);
+ROUTER.post("/complete", completePreEnrollment);
+ROUTER.post("/resend-otp", resendOtpHandler);
 
-export default router;
+export default ROUTER;

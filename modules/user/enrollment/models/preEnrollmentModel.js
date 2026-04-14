@@ -31,7 +31,7 @@ const preEnrollmentSchema = new mongoose.Schema(
       ],
       default: "INIT",
     },
-    otpRefs: { email: String, mobile: String, consent: String },
+    otpReferences: { email: String, mobile: String, consent: String }, // Store OTP reference IDs for verification
     expiresAt: { type: Date, default: null },
   },
   { timestamps: true },

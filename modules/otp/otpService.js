@@ -14,6 +14,17 @@ const generateReferenceId = () =>
 
 // Create OTP for a given purpose, channel, and target
 export const createOtp = async ({ purpose, channel, target }) => {
+  // Basic rate limit (1 OTP per 60 sec per target+purpose)
+  const recentOtp = await Otp.findOne({
+    target,
+    purpose,
+    createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+  });
+
+  if (recentOtp) {
+    throw new Error("Please wait before requesting another OTP");
+  }
+
   const otp = generateOtp();
   const otpHash = hashOtp(otp);
   const referenceId = generateReferenceId();
@@ -37,7 +48,7 @@ export const createOtp = async ({ purpose, channel, target }) => {
 };
 
 // Verify OTP using reference ID and user-provided OTP
-export const verifyOtp = async (referenceId, otp) => {
+export const verifyOtp = async ({ referenceId, otp }) => {
   const record = await Otp.findOne({ referenceId });
 
   if (!record) {
@@ -45,7 +56,7 @@ export const verifyOtp = async (referenceId, otp) => {
   }
 
   if (record.isVerified) {
-    throw new Error("OTP already used");
+    throw new Error("OTP already Used");
   }
 
   if (record.expiresAt < new Date()) {
@@ -69,7 +80,7 @@ export const verifyOtp = async (referenceId, otp) => {
 
   await record.save();
 
-  return true;
+  return record;
 };
 
 // Resend OTP with limits and cooldown
@@ -78,18 +89,22 @@ export const resendOtp = async (referenceId) => {
 
   if (!record) throw new Error("Invalid reference");
 
+  if (record.isVerified) throw new Error("OTP already used");
+
   if (record.resendCount >= record.maxResends) {
     throw new Error("Max resend limit reached");
   }
 
-  if (record.resendAvailableAt > new Date()) {
+  if (record.resendAvailableAt && record.resendAvailableAt > new Date()) {
     throw new Error("Please wait before resending");
   }
 
   const otp = generateOtp();
+
   record.otpHash = hashOtp(otp);
   record.resendCount += 1;
   record.resendAvailableAt = new Date(Date.now() + 30 * 1000);
+  record.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await record.save();
 
