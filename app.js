@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 
 import preEnrollmentRoutes from "./modules/user/enrollment/routes/preEnrollmentRoutes.js";
+import enrollmentRoutes from "./modules/user/enrollment/routes/enrollmentRoutes.js";
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/pre-enrollment", preEnrollmentRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
 
 export default app;

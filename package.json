@@ -17,14 +17,21 @@
   "author": "Gmance Technologies",
   "license": "UNLICENSED",
   "dependencies": {
+    "@xmldom/xmldom": "^0.9.9",
+    "7zip-bin": "^5.2.0",
+    "adm-zip": "^0.5.17",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
+    "multer": "^2.1.1",
     "nanoid": "^5.1.7",
-    "uuid": "^13.0.0"
+    "node-7z": "^3.0.0",
+    "unzipper": "^0.12.3",
+    "uuid": "^13.0.0",
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

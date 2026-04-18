@@ -100,7 +100,7 @@ const enrollmentSchema = new mongoose.Schema(
         },
         verifiedAt: Date,
         verifiedBy: { type: String, default: "SYSTEM" },
-        source: { type: String, enum: ["UIDAI", "ADMIN", "SYSTEM"] },
+        source: { type: String, enum: ["UIDAI_XML", "ADMIN", "SYSTEM"] },
         remarks: { type: String, trim: true },
       },
     },
