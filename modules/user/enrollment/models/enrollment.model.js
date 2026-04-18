@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
-import { USER_TYPES } from "../../../../config/constants.js";
-import { USER_ENROLLMENT_TYPES } from "../../../../config/constants.js";
+import { USER_TYPES } from "../../../../config/constants.config.js";
+import { USER_ENROLLMENT_TYPES } from "../../../../config/constants.config.js";
+import { USER_ENROLLMENT_FLOW_MODES } from "../../../../config/constants.config.js";
+import { STEPS } from "../../../../config/constants.config.js";
 
 const enrollmentSchema = new mongoose.Schema(
   // Schema Definition
@@ -11,10 +13,10 @@ const enrollmentSchema = new mongoose.Schema(
     ernId: { type: String, unique: true, sparse: true },
 
     // Basic Info
-    userType: { type: String, enum: USER_TYPES, required: true },
+    userType: { type: String, enum: Object.values(USER_TYPES), required: true },
     enrollmentType: {
       type: String,
-      enum: USER_ENROLLMENT_TYPES,
+      enum: Object.values(USER_ENROLLMENT_TYPES),
       required: true,
     },
     enrollmentSource: { type: String, enum: ["PUBLIC", "ADMIN"] },
@@ -33,11 +35,15 @@ const enrollmentSchema = new mongoose.Schema(
 
     // Flow Control
     enrollmentFlow: {
-      mode: { type: String, enum: ["NEW", "RESUME"], default: "NEW" },
+      mode: {
+        type: String,
+        enum: Object.values(USER_ENROLLMENT_FLOW_MODES),
+        default: "NEW",
+      },
       currentStep: {
         type: String,
-        enum: ["AUTH", "KYC", "PAN_BANK", "PERSONAL", "KIOSK", "PREVIEW"],
-        default: "AUTH",
+        enum: Object.values(STEPS),
+        default: STEPS.AUTH,
       },
       stepsCompleted: { type: [String], default: [] },
     },

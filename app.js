@@ -2,8 +2,8 @@
 import express from "express";
 import cors from "cors";
 
-import preEnrollmentRoutes from "./modules/user/enrollment/routes/preEnrollmentRoutes.js";
-import enrollmentRoutes from "./modules/user/enrollment/routes/enrollmentRoutes.js";
+import preEnrollmentRoutes from "./modules/user/enrollment/routes/preEnrollment.routes.js";
+import enrollmentRoutes from "./modules/user/enrollment/routes/enrollment.routes.js";
 
 const app = express();
 

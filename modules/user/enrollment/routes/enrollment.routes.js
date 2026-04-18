@@ -22,4 +22,6 @@ ROUTER.post(
   verifyUidKyc,
 );
 
+// ROUTER.patch("/:id/step", stepController.handleStep);
+
 export default ROUTER;

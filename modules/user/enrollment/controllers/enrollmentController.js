@@ -1,6 +1,7 @@
-import Enrollment from "../models/enrollmentModel.js";
+import Enrollment from "../models/enrollment.model.js";
 import { processUidKyc } from "../services/uidKycService.js";
 
+// Enrollment Controller
 export const verifyUidKyc = async (req, res) => {
   try {
     const { trnId, uidNumber, shareCode } = req.body;

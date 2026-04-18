@@ -1,0 +1,95 @@
+// 🔹 User Types
+export const USER_TYPES = {
+  ASSOCIATE: "ASSOCIATE",
+  EMPLOYEE: "EMPLOYEE",
+};
+
+// 🔹 User Roles
+export const USER_ROLES = {
+  SYSTEM_ADMIN: "SYSTEM_ADMIN",
+  OPS_ADMIN: "OPS_ADMIN",
+  FINANCE_ADMIN: "FINANCE_ADMIN",
+  SUPPORT_ADMIN: "SUPPORT_ADMIN",
+  USER: "USER",
+  SYSTEM: "SYSTEM",
+};
+
+// 🔹 User Statuses
+export const USER_STATUSES = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  DEACTIVATED: "DEACTIVATED",
+  SUSPENDED: "SUSPENDED",
+  OFFBOARDED: "OFFBOARDED",
+  TERMINATED: "TERMINATED",
+};
+
+// 🔹 Enrollment Types
+export const USER_ENROLLMENT_TYPES = {
+  NEW_REGISTRATION: "NEW_REGISTRATION",
+  RENEWAL: "RENEWAL",
+  AMENDMENT: "AMENDMENT",
+};
+
+// 🔹 Enrollment Flow Modes
+export const USER_ENROLLMENT_FLOW_MODES = {
+  NEW: "NEW",
+  RESUME: "RESUME",
+};
+
+// 🔹 Steps
+export const STEPS = {
+  AUTH: "AUTH",
+  KYC: "KYC",
+  PAN_BANK: "PAN_BANK",
+  PERSONAL: "PERSONAL",
+  KIOSK: "KIOSK",
+  PREVIEW: "PREVIEW",
+};
+
+// 🔹 Enrollment Sections (Flow per User Type)
+export const USER_ENROLLMENT_SECTIONS = {
+  [USER_TYPES.ASSOCIATE]: [
+    STEPS.AUTH,
+    STEPS.KYC,
+    STEPS.PAN_BANK,
+    STEPS.PERSONAL,
+    STEPS.KIOSK,
+    STEPS.PREVIEW,
+  ],
+
+  [USER_TYPES.EMPLOYEE]: [
+    STEPS.AUTH,
+    STEPS.KYC,
+    STEPS.PAN_BANK,
+    STEPS.PERSONAL,
+    STEPS.PREVIEW,
+  ],
+};
+
+// 🔹 Step Modes (Control Flow)
+export const STEP_MODES = {
+  NEXT: "NEXT",
+  PREV: "PREV",
+  SAVE_DRAFT: "SAVE_DRAFT",
+};
+
+// 🔹 User Actions based on Type & Status
+export const USER_ACTIONS_CONFIG = {
+  [USER_TYPES.ASSOCIATE]: {
+    [USER_STATUSES.ACTIVE]: ["DEACTIVATE", "SUSPEND", "OFFBOARD"],
+    [USER_STATUSES.DEACTIVATED]: ["REACTIVATE"],
+  },
+
+  [USER_TYPES.EMPLOYEE]: {
+    [USER_STATUSES.ACTIVE]: ["DEACTIVATE", "SUSPEND", "TERMINATE"],
+    [USER_STATUSES.DEACTIVATED]: ["REACTIVATE"],
+  },
+};
+
+// 🔹 Evolution Stages
+export const EVOLUTION_STAGES = {
+  COMPLIANCE: "COMPLIANCE",
+  AGREEMENT: "AGREEMENT",
+  ACTIVATION: "ACTIVATION",
+};

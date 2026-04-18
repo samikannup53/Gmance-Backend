@@ -1,5 +1,5 @@
-import PreEnrollment from "../models/preEnrollmentModel.js";
-import Enrollment from "../models/enrollmentModel.js";
+import PreEnrollment from "../models/preEnrollment.model.js";
+import Enrollment from "../models/enrollment.model.js";
 
 import { createOtp, verifyOtp, resendOtp } from "../../../otp/otpService.js";
 
