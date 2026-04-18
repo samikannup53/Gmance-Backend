@@ -2,7 +2,7 @@ import PreEnrollment from "../../models/preEnrollment.model.js";
 import { resendOtp } from "../../../../otp/otpService.js";
 
 // Resend OTP (for both EMAIL, MOBILE, CONSENT)
-export const preEnrollmentOtpResend = async (req, res) => {
+export const resendPreEnrollmentOtp = async (req, res) => {
   try {
     const { preEnrollmentId, type } = req.body || {};
 

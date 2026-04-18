@@ -11,10 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "API is running",
-  });
+  res.json({ message: "API is running" });
 });
 
 app.use("/api/pre-enrollment", preEnrollmentRoutes);

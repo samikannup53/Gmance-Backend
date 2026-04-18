@@ -1,9 +1,31 @@
 import mongoose from "mongoose";
 
+import {
+  USER_TYPES,
+  USER_ENROLLMENT_TYPES,
+} from "../../../../config/constants.config.js";
+
 const preEnrollmentSchema = new mongoose.Schema(
   {
-    enrollmentSource: { type: String, enum: ["PUBLIC", "ADMIN"] },
-    email: { type: String, trim: true, lowercase: true },
+    enrollmentSource: {
+      type: String,
+      enum: ["PUBLIC", "ADMIN"],
+      required: true,
+    },
+
+    userType: {
+      type: String,
+      enum: Object.values(USER_TYPES),
+      required: true,
+    },
+
+    enrollmentType: {
+      type: String,
+      enum: Object.values(USER_ENROLLMENT_TYPES),
+      required: true,
+    },
+
+    email: { type: String, trim: true, required: true, lowercase: true },
     mobile: {
       countryCode: { type: String, default: "+91" },
       number: { type: String, trim: true },

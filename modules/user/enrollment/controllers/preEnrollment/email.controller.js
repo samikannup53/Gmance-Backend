@@ -22,10 +22,10 @@ export const verifyPreEnrollmentEmailOtp = async (req, res) => {
       });
     }
 
-    if (preEnrollment.expiresAt < new Date()) {
+    if (!preEnrollment.expiresAt || preEnrollment.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
-        message: "OTP Expired. Please restart process",
+        message: "Session expired. Please restart process",
       });
     }
 
@@ -33,6 +33,13 @@ export const verifyPreEnrollmentEmailOtp = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Email Already Verified",
+      });
+    }
+
+    if (!preEnrollment.otpReferences?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP not found. Please resend OTP",
       });
     }
 
@@ -51,7 +58,9 @@ export const verifyPreEnrollmentEmailOtp = async (req, res) => {
 
     preEnrollment.emailVerified = true;
     preEnrollment.otpReferences.email = null;
-    preEnrollment.status = "EMAIL_VERIFIED";
+    preEnrollment.status = preEnrollment.mobileVerified
+      ? "BOTH_VERIFIED"
+      : "EMAIL_VERIFIED";
 
     await preEnrollment.save();
 
@@ -60,7 +69,7 @@ export const verifyPreEnrollmentEmailOtp = async (req, res) => {
       message: "Email Verified Successfully",
     });
   } catch (error) {
-    console.error("[verifyEmailOtp] Error:", {
+    console.error("[verifyPreEnrollmentEmailOtp] Error:", {
       message: error.message,
       stack: error.stack,
       body: req.body,

@@ -22,18 +22,31 @@ export const sendPreEnrollmentMobileOtp = async (req, res) => {
       });
     }
 
-    if (preEnrollment.expiresAt < new Date()) {
+    if (!preEnrollment.expiresAt || preEnrollment.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
         message: "Session expired",
       });
     }
 
-    preEnrollment.mobile = mobile;
+    if (preEnrollment.mobileVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile already verified",
+      });
+    }
+
+    const normalizedMobile = mobile.number.replace(/\D/g, "").slice(-10);
+
+    preEnrollment.mobile = {
+      ...mobile,
+      number: normalizedMobile,
+    };
+
     preEnrollment.otpReferences.mobile = await createOtp({
       purpose: "MOBILE_VERIFICATION",
       channel: "WHATSAPP",
-      target: mobile.number.trim(),
+      target: normalizedMobile,
     });
 
     await preEnrollment.save();
@@ -43,7 +56,7 @@ export const sendPreEnrollmentMobileOtp = async (req, res) => {
       message: "Mobile OTP Sent Successfully",
     });
   } catch (error) {
-    console.error("[sendMobileOtp] Error:", {
+    console.error("[sendPreEnrollmentMobileOtp] Error:", {
       message: error.message,
       stack: error.stack,
       body: req.body,
@@ -61,6 +74,7 @@ export const sendPreEnrollmentMobileOtp = async (req, res) => {
 export const verifyPreEnrollmentMobileOtp = async (req, res) => {
   try {
     const { preEnrollmentId, otp } = req.body || {};
+
     if (!preEnrollmentId || !otp) {
       return res.status(400).json({
         success: false,
@@ -84,12 +98,23 @@ export const verifyPreEnrollmentMobileOtp = async (req, res) => {
       });
     }
 
-    if (preEnrollment.expiresAt < new Date()) {
+    if (!preEnrollment.expiresAt || preEnrollment.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
         message: "Session expired",
       });
     }
+
+    if (!preEnrollment.otpReferences?.mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP not found. Please resend OTP",
+      });
+    }
+
+    const normalizedMobile = preEnrollment.mobile.number
+      .replace(/\D/g, "")
+      .slice(-10);
 
     const otpRecord = await verifyOtp({
       referenceId: preEnrollment.otpReferences.mobile,
@@ -100,21 +125,25 @@ export const verifyPreEnrollmentMobileOtp = async (req, res) => {
       throw new Error("Invalid OTP type");
     }
 
-    if (otpRecord.target !== preEnrollment.mobile.number) {
+    if (otpRecord.target !== normalizedMobile) {
       throw new Error("OTP mismatch");
     }
 
     preEnrollment.mobileVerified = true;
     preEnrollment.otpReferences.mobile = null;
-    preEnrollment.status = "MOBILE_VERIFIED";
+
+    preEnrollment.status = preEnrollment.emailVerified
+      ? "BOTH_VERIFIED"
+      : "MOBILE_VERIFIED";
 
     await preEnrollment.save();
+
     return res.status(200).json({
       success: true,
       message: "Mobile Verified Successfully",
     });
   } catch (error) {
-    console.error("[verifyMobileOtp] Error:", {
+    console.error("[verifyPreEnrollmentMobileOtp] Error:", {
       message: error.message,
       stack: error.stack,
       body: req.body,

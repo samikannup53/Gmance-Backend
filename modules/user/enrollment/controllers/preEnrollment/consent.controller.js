@@ -22,10 +22,17 @@ export const initiateOnboardingConsent = async (req, res) => {
       });
     }
 
-    if (preEnrollment.expiresAt < new Date()) {
+    if (!preEnrollment.expiresAt || preEnrollment.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
         message: "Session expired",
+      });
+    }
+
+    if (preEnrollment.onboardingConsent?.isGranted) {
+      return res.status(400).json({
+        success: false,
+        message: "Consent already granted",
       });
     }
 
@@ -71,7 +78,7 @@ export const initiateOnboardingConsent = async (req, res) => {
       message: "Invalid Enrollment Source",
     });
   } catch (error) {
-    console.error("[onboardingConsent] Error:", {
+    console.error("[initiateOnboardingConsent] Error:", {
       message: error.message,
       stack: error.stack,
       body: req.body,
@@ -106,12 +113,28 @@ export const verifyOnboardingConsentOtp = async (req, res) => {
       });
     }
 
-    if (preEnrollment.expiresAt < new Date()) {
+    if (!preEnrollment.expiresAt || preEnrollment.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
         message: "Session expired",
       });
     }
+
+    if (preEnrollment.onboardingConsent?.isGranted) {
+      return res.status(400).json({
+        success: false,
+        message: "Consent already granted",
+      });
+    }
+
+    if (!preEnrollment.otpReferences?.consent) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP not found. Please resend OTP",
+      });
+    }
+
+    const normalizedEmail = preEnrollment.email.toLowerCase();
 
     const otpRecord = await verifyOtp({
       referenceId: preEnrollment.otpReferences.consent,
@@ -122,7 +145,7 @@ export const verifyOnboardingConsentOtp = async (req, res) => {
       throw new Error("Invalid OTP type");
     }
 
-    if (otpRecord.target !== preEnrollment.email) {
+    if (otpRecord.target !== normalizedEmail) {
       throw new Error("OTP mismatch");
     }
 
