@@ -14,7 +14,6 @@ import {
 } from "../utils/kycHash.js";
 import { encrypt } from "../utils/encryption.js";
 
-
 // Extract XML from Aadhaar ZIP using shareCode
 export const extractUidXmlFromZip = async (zipBuffer, shareCode) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "uid-"));
@@ -46,7 +45,6 @@ export const extractUidXmlFromZip = async (zipBuffer, shareCode) => {
     const xmlPath = path.join(tempDir, xmlFile);
 
     return fs.readFileSync(xmlPath, "utf-8");
-    
   } catch (err) {
     throw new Error("Invalid ZIP or wrong share code");
   } finally {
