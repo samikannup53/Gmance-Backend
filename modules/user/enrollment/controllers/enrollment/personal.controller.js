@@ -40,15 +40,24 @@ export const completeUserEnrollmentPersonal = async (req, res) => {
       });
     }
 
-    const enrollment = await Enrollment.findOne({
-      trnId,
-      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
-    });
+    const enrollment = await Enrollment.findOne({ trnId });
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: "Enrollment not found",
+      });
+    }
+
+    if (enrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.DRAFT) {
+      return res.status(400).json({
+        success: false,
+        message: `Enrollment is currently in ${enrollment.enrollmentProgress
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (l) =>
+            l.toUpperCase(),
+          )} Stage. This action is not allowed.`,
       });
     }
 

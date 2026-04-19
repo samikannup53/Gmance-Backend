@@ -314,7 +314,10 @@ const enrollmentSchema = new mongoose.Schema(
 
       requestInfo: {
         ip: { type: String, trim: true },
-        coordinates: { type: String, trim: true },
+        coordinates: {
+          lat: { type: Number, trim: true },
+          lng: { type: Number, trim: true },
+        },
       },
     },
   },

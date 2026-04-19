@@ -43,15 +43,24 @@ export const completeUserEnrollmentAuth = async (req, res) => {
     // =========================
 
     if (enrollmentFlowMode === USER_ENROLLMENT_FLOW_MODES.RESUME) {
-      const existingEnrollment = await Enrollment.findOne({
-        trnId,
-        enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
-      });
+      const existingEnrollment = await Enrollment.findOne({ trnId });
 
       if (!existingEnrollment) {
         return res.status(404).json({
           success: false,
           message: "User Enrollment not found for provided TRN ID",
+        });
+      }
+
+      if (existingEnrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.DRAFT) {
+        return res.status(400).json({
+          success: false,
+          message: `Enrollment is currently in ${existingEnrollment.enrollmentProgress
+            .toLowerCase()
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) =>
+              l.toUpperCase(),
+            )} Stage. This action is not allowed.`,
         });
       }
 
@@ -160,6 +169,18 @@ export const completeUserEnrollmentAuth = async (req, res) => {
         emailVerified: true,
         mobileVerified: true,
         onboardingConsent: preEnrollment.onboardingConsent,
+      },
+
+      meta: {
+        createdBy: {
+          id: req.meta.actor.id,
+          role: req.meta.actor.role,
+        },
+        updatedBy: {
+          id: req.meta.actor.id,
+          role: req.meta.actor.role,
+        },
+        requestInfo: req.meta.requestInfo,
       },
     });
 

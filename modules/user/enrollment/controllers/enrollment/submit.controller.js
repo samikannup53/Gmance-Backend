@@ -20,15 +20,27 @@ export const finalSubmitUserEnrollment = async (req, res) => {
     }
 
     // FETCH ENROLLMENT
-    const enrollment = await Enrollment.findOne({
-      trnId,
-      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
-    }).select("+kyc.uidEncrypted +pan.panEncrypted +bank.accountEncrypted");
+    const enrollment = await Enrollment.findOne({ trnId }).select(
+      "+kyc.uidEncrypted +pan.panEncrypted +bank.accountEncrypted",
+    );
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: "Enrollment not found",
+      });
+    }
+
+    // INVALID STATE
+    if (enrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.DRAFT) {
+      return res.status(400).json({
+        success: false,
+        message: `Enrollment is currently in ${enrollment.enrollmentProgress
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (l) =>
+            l.toUpperCase(),
+          )} Stage. This action is not allowed.`,
       });
     }
 
@@ -290,6 +302,9 @@ export const finalSubmitUserEnrollment = async (req, res) => {
 
     enrollment.enrollmentProgress = progress;
     enrollment.enrollmentStatus = ENROLLMENT_PROGRESS_STATUS_MAP[progress];
+
+    enrollment.meta.updatedBy = req.meta.actor;
+    enrollment.meta.requestInfo = req.meta.requestInfo;
 
     // SAVE
     await enrollment.save();
