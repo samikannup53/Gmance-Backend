@@ -92,10 +92,11 @@ export const USER_ENROLLMENT_SECTIONS = {
 };
 
 // 🔹 Step Modes (Control Flow)
-export const STEP_MODES = {
+export const USER_ENROLLMENT_STEP_MODES = {
   NEXT: "NEXT",
-  PREV: "PREV",
   SAVE_DRAFT: "SAVE_DRAFT",
+  SUBMIT: "SUBMIT",
+  FINAL_SUBMIT: "FINAL_SUBMIT",
 };
 
 // 🔹 User Actions based on Type & Status

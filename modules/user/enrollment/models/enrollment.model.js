@@ -163,7 +163,7 @@ const enrollmentSchema = new mongoose.Schema(
 
     // PAN SECTION
     pan: {
-      encrypted: { type: String, select: false },
+      panEncrypted: { type: String, select: false },
       last4: String,
       name: { type: String, trim: true },
 
@@ -184,7 +184,7 @@ const enrollmentSchema = new mongoose.Schema(
           default: "PENDING",
         },
         verifiedAt: Date,
-        verifiedBy: { type: String, default: "SYSTEM" },
+        verifiedBy: String,
         source: { type: String, enum: ["NSDL", "ADMIN", "SYSTEM"] },
         remarks: { type: String, trim: true },
       },
@@ -217,7 +217,7 @@ const enrollmentSchema = new mongoose.Schema(
           default: "PENDING",
         },
         verifiedAt: Date,
-        verifiedBy: { type: String, default: "SYSTEM" },
+        verifiedBy: String,
         source: { type: String, enum: ["BANK", "ADMIN", "SYSTEM"] },
         remarks: { type: String, trim: true },
       },

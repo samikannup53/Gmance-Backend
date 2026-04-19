@@ -2,8 +2,14 @@ import Enrollment from "../../models/enrollment.model.js";
 import { processUidKyc } from "../../services/uidKycService.js";
 import {
   STEPS,
+  USER_ENROLLMENT_STEP_MODES,
   ENROLLMENT_PROGRESS,
 } from "../../../../../config/constants.config.js";
+
+import {
+  validateUserEnrollmentStepAccess,
+  handleUserEnrollmentStepProgression,
+} from "../../services/stepFlow.service.js";
 
 // Verify UID KYC (Process + Save)
 export const verifyUserEnrollmentUidKyc = async (req, res) => {
@@ -42,17 +48,19 @@ export const verifyUserEnrollmentUidKyc = async (req, res) => {
       });
     }
 
-    if (enrollment.enrollmentFlow.currentStep !== STEPS.KYC) {
+    try {
+      validateUserEnrollmentStepAccess(enrollment, STEPS.KYC);
+    } catch (err) {
       return res.status(400).json({
         success: false,
-        message: "Invalid step flow",
+        message: err.message,
       });
     }
 
     if (enrollment.kyc?.verification?.status === "VERIFIED") {
       return res.status(400).json({
         success: false,
-        message: "KYC already completed",
+        message: "KYC already Verified",
       });
     }
 
@@ -158,10 +166,12 @@ export const completeUserEnrollmentKyc = async (req, res) => {
       });
     }
 
-    if (enrollment.enrollmentFlow.currentStep !== STEPS.KYC) {
+    try {
+      validateUserEnrollmentStepAccess(enrollment, STEPS.KYC);
+    } catch (err) {
       return res.status(400).json({
         success: false,
-        message: "Invalid step flow",
+        message: err.message,
       });
     }
 
@@ -190,11 +200,11 @@ export const completeUserEnrollmentKyc = async (req, res) => {
     };
 
     // Step progression
-    if (!enrollment.enrollmentFlow.stepsCompleted.includes(STEPS.KYC)) {
-      enrollment.enrollmentFlow.stepsCompleted.push(STEPS.KYC);
-    }
-
-    enrollment.enrollmentFlow.currentStep = STEPS.PAN_BANK;
+    handleUserEnrollmentStepProgression(
+      enrollment,
+      STEPS.KYC,
+      USER_ENROLLMENT_STEP_MODES.NEXT,
+    );
 
     await enrollment.save();
 
