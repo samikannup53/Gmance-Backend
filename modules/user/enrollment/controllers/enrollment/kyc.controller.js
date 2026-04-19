@@ -32,19 +32,15 @@ export const verifyUserEnrollmentUidKyc = async (req, res) => {
       });
     }
 
-    const enrollment = await Enrollment.findOne({ trnId });
+    const enrollment = await Enrollment.findOne({
+      trnId,
+      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
+    });
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: "Enrollment not found",
-      });
-    }
-
-    if (enrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.DRAFT) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid enrollment stage",
       });
     }
 
@@ -131,9 +127,9 @@ export const verifyUserEnrollmentUidKyc = async (req, res) => {
       stack: error.stack,
     });
 
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: "KYC Verification Failed",
+      message: "Unable to verify KYC",
     });
   }
 };
@@ -150,19 +146,15 @@ export const completeUserEnrollmentKyc = async (req, res) => {
       });
     }
 
-    const enrollment = await Enrollment.findOne({ trnId });
+    const enrollment = await Enrollment.findOne({
+      trnId,
+      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
+    });
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: "Enrollment not found",
-      });
-    }
-
-    if (enrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.DRAFT) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid enrollment stage",
       });
     }
 
@@ -218,7 +210,7 @@ export const completeUserEnrollmentKyc = async (req, res) => {
       stack: error.stack,
     });
 
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
       message: "Unable to Complete KYC Step",
     });

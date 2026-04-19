@@ -41,7 +41,10 @@ export const completeUserEnrollmentPanBank = async (req, res) => {
       });
     }
 
-    const enrollment = await Enrollment.findOne({ trnId });
+    const enrollment = await Enrollment.findOne({
+      trnId,
+      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
+    });
 
     if (!enrollment) {
       return res.status(404).json({
@@ -272,7 +275,7 @@ export const completeUserEnrollmentPanBank = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      message: error.message || "PAN & Bank processing failed",
+      message: "Unable to process PAN & Bank details. Please try again",
     });
   }
 };
