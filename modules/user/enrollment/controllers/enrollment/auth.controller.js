@@ -4,6 +4,7 @@ import Enrollment from "../../models/enrollment.model.js";
 import {
   STEPS,
   ENROLLMENT_PROGRESS,
+  ENROLLMENT_PROGRESS_STATUS_MAP,
   ENROLLMENT_STATUS,
   USER_ENROLLMENT_FLOW_MODES,
 } from "../../../../../config/constants.config.js";
@@ -134,6 +135,8 @@ export const completeUserEnrollmentAuth = async (req, res) => {
       .slice(2, 10)
       .toUpperCase()}-${Date.now()}`;
 
+    const progress = ENROLLMENT_PROGRESS.DRAFT;
+
     const enrollment = await Enrollment.create({
       publicId,
       trnId: newTrnId,
@@ -142,8 +145,8 @@ export const completeUserEnrollmentAuth = async (req, res) => {
       enrollmentType,
       enrollmentSource: preEnrollment.enrollmentSource,
 
-      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
-      enrollmentStatus: ENROLLMENT_STATUS.AWAITING_SUBMISSION,
+      enrollmentProgress: progress,
+      enrollmentStatus: ENROLLMENT_PROGRESS_STATUS_MAP[progress],
 
       enrollmentFlow: {
         mode: enrollmentFlowMode,
