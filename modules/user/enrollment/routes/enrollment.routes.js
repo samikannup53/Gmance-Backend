@@ -9,7 +9,7 @@ import {
 import { completeUserEnrollmentPanBank } from "../controllers/enrollment/panBank.controller.js";
 import { completeUserEnrollmentPersonal } from "../controllers/enrollment/personal.controller.js";
 import { completeUserEnrollmentKiosk } from "../controllers/enrollment/kiosk.controller.js";
-import { getUserEnrollmentPreview } from "../controllers/enrollment/preview.controller.js";
+import { confirmUserEnrollmentPreview, getUserEnrollmentPreview } from "../controllers/enrollment/preview.controller.js";
 
 const ROUTER = express.Router();
 
@@ -61,6 +61,6 @@ ROUTER.post("/pan-bank/complete", panBankUpload, completeUserEnrollmentPanBank);
 ROUTER.post("/personal/complete", personalUpload, completeUserEnrollmentPersonal);
 ROUTER.post("/kiosk/complete", kioskUpload, completeUserEnrollmentKiosk);
 ROUTER.get("/preview", getUserEnrollmentPreview);
-// ROUTER.post("/preview/confirm", confirmUserEnrollmentPreview);
+ROUTER.post("/preview/confirm", confirmUserEnrollmentPreview);
 
 export default ROUTER;

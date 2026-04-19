@@ -2,6 +2,7 @@ import Enrollment from "../../models/enrollment.model.js";
 import {
   STEPS,
   ENROLLMENT_PROGRESS,
+  USER_ENROLLMENT_SECTIONS,
 } from "../../../../../config/constants.config.js";
 
 import { decrypt } from "../../utils/encryption.js";
@@ -90,11 +91,236 @@ export const getUserEnrollmentPreview = async (req, res) => {
       data: responseData,
     });
   } catch (error) {
-    console.error("[getUserEnrollmentPreview]", error);
+    console.error("[getUserEnrollmentPreview] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
 
     return res.status(500).json({
       success: false,
-      message: "Unable to fetch preview",
+      message: "Unable to Fetch Enrollment Preview, Please try again later",
+    });
+  }
+};
+
+export const confirmUserEnrollmentPreview = async (req, res) => {
+  try {
+    const { trnId, documentConfirmations, submissionConsent } = req.body;
+
+    // BASIC VALIDATION
+    if (!trnId) {
+      return res.status(400).json({
+        success: false,
+        message: "trnId is required",
+      });
+    }
+
+    if (!documentConfirmations || typeof documentConfirmations !== "object") {
+      return res.status(400).json({
+        success: false,
+        message: "Document confirmations required",
+      });
+    }
+
+    // FETCH ENROLLMENT
+    const enrollment = await Enrollment.findOne({
+      trnId,
+      enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found",
+      });
+    }
+
+    // STEP VALIDATION
+    if (enrollment.enrollmentFlow.currentStep !== STEPS.PREVIEW) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid step flow",
+      });
+    }
+
+    // FLOW CHECK (KIOSK REQUIRED OR NOT)
+    const requiresKiosk = USER_ENROLLMENT_SECTIONS[
+      enrollment.userType
+    ]?.includes(STEPS.KIOSK);
+
+    // CONFIRMATION VALIDATION
+    if (!documentConfirmations?.kyc?.uidHardCopy) {
+      return res.status(400).json({
+        success: false,
+        message: "KYC UID Hard Copy not confirmed",
+      });
+    }
+
+    if (!documentConfirmations?.pan?.hardCopy) {
+      return res.status(400).json({
+        success: false,
+        message: "PAN Hard Copy not confirmed",
+      });
+    }
+
+    if (!documentConfirmations?.bank?.passbookOrCheque) {
+      return res.status(400).json({
+        success: false,
+        message: "Bank document not confirmed",
+      });
+    }
+
+    if (!documentConfirmations?.personal?.photo) {
+      return res.status(400).json({
+        success: false,
+        message: "Photo not confirmed",
+      });
+    }
+
+    if (!documentConfirmations?.personal?.pvr) {
+      return res.status(400).json({
+        success: false,
+        message: "PVR not confirmed",
+      });
+    }
+
+    if (!documentConfirmations?.personal?.qualificationCertificate) {
+      return res.status(400).json({
+        success: false,
+        message: "Qualification certificate not confirmed",
+      });
+    }
+
+    if (requiresKiosk && !documentConfirmations?.kiosk?.udyamCertificate) {
+      return res.status(400).json({
+        success: false,
+        message: "Udyam certificate not confirmed",
+      });
+    }
+
+    if (requiresKiosk && !documentConfirmations?.kiosk?.kioskPhoto) {
+      return res.status(400).json({
+        success: false,
+        message: "Kiosk photo not confirmed",
+      });
+    }
+
+    // FILE VALIDATION
+    if (!enrollment.kyc?.documents?.uidHardCopy?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "KYC UID Hard Copy not uploaded",
+      });
+    }
+
+    if (!enrollment.pan?.documents?.hardCopy?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "PAN Hard Copy not uploaded",
+      });
+    }
+
+    if (!enrollment.bank?.documents?.passbookOrCheque?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "Bank document not uploaded",
+      });
+    }
+
+    if (!enrollment.personal?.documents?.photo?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "Photo not uploaded",
+      });
+    }
+
+    if (!enrollment.personal?.documents?.pvr?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "PVR not uploaded",
+      });
+    }
+
+    if (!enrollment.personal?.documents?.qualificationCertificate?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "Qualification certificate not uploaded",
+      });
+    }
+
+    if (requiresKiosk && !enrollment.kiosk?.documents?.udyamCertificate?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "Udyam certificate not uploaded",
+      });
+    }
+
+    if (requiresKiosk && !enrollment.kiosk?.documents?.kioskPhoto?.ref) {
+      return res.status(400).json({
+        success: false,
+        message: "Kiosk photo not uploaded",
+      });
+    }
+
+    // APPLY CONFIRMATIONS
+    enrollment.kyc.documents.uidHardCopy.isConfirmed = true;
+    enrollment.pan.documents.hardCopy.isConfirmed = true;
+    enrollment.bank.documents.passbookOrCheque.isConfirmed = true;
+
+    enrollment.personal.documents.photo.isConfirmed = true;
+    enrollment.personal.documents.pvr.isConfirmed = true;
+    enrollment.personal.documents.qualificationCertificate.isConfirmed = true;
+
+    if (requiresKiosk) {
+      enrollment.kiosk.documents.udyamCertificate.isConfirmed = true;
+      enrollment.kiosk.documents.kioskPhoto.isConfirmed = true;
+    }
+
+    // CONSENT VALIDATION
+    if (!submissionConsent?.method) {
+      return res.status(400).json({
+        success: false,
+        message: "Submission consent required",
+      });
+    }
+
+    if (!["OTP", "CHECKBOX", "ESIGN"].includes(submissionConsent.method)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid consent method",
+      });
+    }
+
+    // SAVE CONSENT
+    enrollment.process = enrollment.process || {};
+    enrollment.process.submissionConsent = {
+      isConfirmed: true,
+      method: submissionConsent.method,
+      confirmedBy: "USER",
+      confirmedAt: new Date(),
+      referenceId: null,
+    };
+
+    // SAVE
+    await enrollment.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Preview confirmed successfully",
+    });
+  } catch (error) {
+    console.error("[confirmUserEnrollmentPreview] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to confirm preview. Please try again later",
     });
   }
 };
