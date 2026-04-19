@@ -7,6 +7,7 @@ import {
   verifyUserEnrollmentUidKyc,
 } from "../controllers/enrollment/kyc.controller.js";
 import { completeUserEnrollmentPanBank } from "../controllers/enrollment/panBank.controller.js";
+import { completeUserEnrollmentPersonal } from "../controllers/enrollment/personal.controller.js";
 
 const ROUTER = express.Router();
 
@@ -40,11 +41,17 @@ const panBankUpload = upload.fields([
   { name: "panHardCopy", maxCount: 1 },
   { name: "bankDocument", maxCount: 1 },
 ]);
+const personalUpload = upload.fields([
+  { name: "photo", maxCount: 1 },
+  { name: "pvr", maxCount: 1 },
+  { name: "qualificationCertificate", maxCount: 1 },
+]);
 
 // Routes (single-line clean style)
 ROUTER.post("/auth/complete", completeUserEnrollmentAuth);
 ROUTER.post("/kyc/verify-uid", kycVerifyUpload, verifyUserEnrollmentUidKyc);
 ROUTER.post("/kyc/complete", kycCompleteUpload, completeUserEnrollmentKyc);
 ROUTER.post("/pan-bank/complete", panBankUpload, completeUserEnrollmentPanBank);
+ROUTER.post("/personal/complete", personalUpload, completeUserEnrollmentPersonal);
 
 export default ROUTER;

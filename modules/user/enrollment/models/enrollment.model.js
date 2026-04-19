@@ -111,56 +111,6 @@ const enrollmentSchema = new mongoose.Schema(
       },
     },
 
-    // PERSONAL SECTION
-    personal: {
-      maritalStatus: {
-        type: String,
-        enum: ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
-      },
-      relativeType: {
-        type: String,
-        enum: ["FATHER", "MOTHER", "SPOUSE", "GUARDIAN"],
-      },
-      relativeName: { type: String, trim: true },
-      category: {
-        type: String,
-        enum: ["GENERAL", "OBC", "SC", "ST", "OTHER", "NOT_SPECIFIED"],
-      },
-      highestQualification: {
-        type: String,
-        enum: [
-          "SSLC",
-          "HSC",
-          "DIPLOMA",
-          "GRADUATE",
-          "POST_GRADUATE",
-          "DOCTORATE",
-          "OTHER",
-        ],
-      },
-      computerKnowledge: {
-        type: String,
-        enum: ["NONE", "BASIC", "INTERMEDIATE", "ADVANCED"],
-      },
-
-      documents: {
-        photo: {
-          ref: String,
-          isConfirmed: { type: Boolean, default: false },
-        },
-
-        pvr: {
-          ref: String,
-          isConfirmed: { type: Boolean, default: false },
-        },
-
-        qualificationCertificate: {
-          ref: String,
-          isConfirmed: { type: Boolean, default: false },
-        },
-      },
-    },
-
     // PAN SECTION
     pan: {
       panEncrypted: { type: String, select: false },
@@ -220,6 +170,56 @@ const enrollmentSchema = new mongoose.Schema(
         verifiedBy: String,
         source: { type: String, enum: ["BANK", "ADMIN", "SYSTEM"] },
         remarks: { type: String, trim: true },
+      },
+    },
+
+    // PERSONAL SECTION
+    personal: {
+      maritalStatus: {
+        type: String,
+        enum: ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
+      },
+      relativeType: {
+        type: String,
+        enum: ["FATHER", "MOTHER", "SPOUSE", "GUARDIAN"],
+      },
+      relativeName: { type: String, trim: true },
+      category: {
+        type: String,
+        enum: ["GENERAL", "OBC", "SC", "ST", "OTHER", "NOT_SPECIFIED"],
+      },
+      highestQualification: {
+        type: String,
+        enum: [
+          "SSLC",
+          "HSC",
+          "DIPLOMA",
+          "GRADUATE",
+          "POST_GRADUATE",
+          "DOCTORATE",
+          "OTHER",
+        ],
+      },
+      computerKnowledge: {
+        type: String,
+        enum: ["NONE", "BASIC", "INTERMEDIATE", "ADVANCED"],
+      },
+
+      documents: {
+        photo: {
+          ref: String,
+          isConfirmed: { type: Boolean, default: false },
+        },
+
+        pvr: {
+          ref: String,
+          isConfirmed: { type: Boolean, default: false },
+        },
+
+        qualificationCertificate: {
+          ref: String,
+          isConfirmed: { type: Boolean, default: false },
+        },
       },
     },
 
