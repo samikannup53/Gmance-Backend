@@ -5,32 +5,83 @@ import {
   STEPS,
   ENROLLMENT_PROGRESS,
   ENROLLMENT_STATUS,
+  USER_ENROLLMENT_FLOW_MODES,
 } from "../../../../../config/constants.config.js";
 
 export const completeUserEnrollmentAuth = async (req, res) => {
   try {
-    const { preEnrollmentId } = req.body || {};
+    const { preEnrollmentId, enrollmentFlowMode, trnId } = req.body || {};
+
+    // =========================
+    // BASIC VALIDATION
+    // =========================
 
     if (!preEnrollmentId) {
       return res.status(400).json({
         success: false,
-        message: "Missing Required Fields",
+        message: "Missing Pre-Enrollment ID",
       });
     }
+
+    if (!enrollmentFlowMode) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing User Enrollment Flow Mode",
+      });
+    }
+
+    if (enrollmentFlowMode === USER_ENROLLMENT_FLOW_MODES.RESUME && !trnId) {
+      return res.status(400).json({
+        success: false,
+        message: "TRN ID is required for Resuming User Enrollment",
+      });
+    }
+
+    // =========================
+    // RESUME FLOW
+    // =========================
+
+    if (enrollmentFlowMode === USER_ENROLLMENT_FLOW_MODES.RESUME) {
+      const existingEnrollment = await Enrollment.findOne({
+        trnId,
+        enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
+      });
+
+      if (!existingEnrollment) {
+        return res.status(404).json({
+          success: false,
+          message: "User Enrollment not found for provided TRN ID",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "User Enrollment Resumed Successfully",
+        data: {
+          trnId: existingEnrollment.trnId,
+          publicId: existingEnrollment.publicId,
+          currentStep: existingEnrollment.enrollmentFlow.currentStep,
+        },
+      });
+    }
+
+    // =========================
+    // PRE-ENROLLMENT VALIDATION
+    // =========================
 
     const preEnrollment = await PreEnrollment.findById(preEnrollmentId);
 
     if (!preEnrollment) {
       return res.status(404).json({
         success: false,
-        message: "Pre-Enrollment Not Found",
+        message: "Pre-Enrollment Session Expired or Not Found",
       });
     }
 
     if (preEnrollment.status === "COMPLETED") {
       return res.status(400).json({
         success: false,
-        message: "Enrollment already created for this session",
+        message: "Enrollment already Created from this Pre-Enrollment Session",
       });
     }
 
@@ -41,7 +92,8 @@ export const completeUserEnrollmentAuth = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Auth flow not completed",
+        message:
+          "Enrollment Authentication Incomplete. Please complete email/mobile verification and grant onboarding consent",
       });
     }
 
@@ -51,19 +103,32 @@ export const completeUserEnrollmentAuth = async (req, res) => {
     const email = preEnrollment.email;
     const mobile = preEnrollment.mobile?.number?.replace(/\D/g, "").slice(-10);
 
-    const existingEnrollment = await Enrollment.findOne({
+    // =========================
+    // EXISTING DRAFT CHECK (AUTO RESUME)
+    // =========================
+
+    const existingDraft = await Enrollment.findOne({
       $or: [{ "auth.email": email }, { "auth.mobile.number": mobile }],
       enrollmentProgress: ENROLLMENT_PROGRESS.DRAFT,
     });
 
-    if (existingEnrollment) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or Mobile already exists",
+    if (existingDraft) {
+      return res.status(200).json({
+        success: true,
+        message: "Existing enrollment resumed",
+        data: {
+          trnId: existingDraft.trnId,
+          publicId: existingDraft.publicId,
+          currentStep: existingDraft.enrollmentFlow.currentStep,
+        },
       });
     }
 
-    const trnId = `TRN-${Date.now()}`;
+    // =========================
+    // CREATE NEW ENROLLMENT
+    // =========================
+
+    const newTrnId = `TRN-${Date.now()}`;
     const publicId = `${Math.random()
       .toString(36)
       .slice(2, 10)
@@ -71,7 +136,7 @@ export const completeUserEnrollmentAuth = async (req, res) => {
 
     const enrollment = await Enrollment.create({
       publicId,
-      trnId,
+      trnId: newTrnId,
 
       userType,
       enrollmentType,
@@ -81,7 +146,7 @@ export const completeUserEnrollmentAuth = async (req, res) => {
       enrollmentStatus: ENROLLMENT_STATUS.AWAITING_SUBMISSION,
 
       enrollmentFlow: {
-        mode: "NEW",
+        mode: enrollmentFlowMode,
         currentStep: STEPS.KYC,
         stepsCompleted: [STEPS.AUTH],
       },
@@ -95,6 +160,7 @@ export const completeUserEnrollmentAuth = async (req, res) => {
       },
     });
 
+    // Mark pre-enrollment completed
     preEnrollment.status = "COMPLETED";
     await preEnrollment.save();
 

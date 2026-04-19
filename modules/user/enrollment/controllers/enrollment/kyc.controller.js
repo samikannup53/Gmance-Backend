@@ -133,7 +133,7 @@ export const verifyUserEnrollmentUidKyc = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "KYC Verification Failed",
     });
   }
 };
@@ -220,7 +220,7 @@ export const completeUserEnrollmentKyc = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "Unable to Complete KYC Step",
     });
   }
 };
