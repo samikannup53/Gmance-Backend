@@ -21,8 +21,9 @@ const paymentSchema = new mongoose.Schema(
       enum: Object.values(PAYMENT_ENTITY),
       required: true,
     },
+
     entityId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String, // internal ID like TRN-20001
       required: true,
       index: true,
     },
@@ -32,6 +33,7 @@ const paymentSchema = new mongoose.Schema(
       enum: Object.values(PAYMENT_FLOW),
       required: true,
     },
+
     method: {
       type: String,
       enum: Object.values(PAYMENT_METHOD),
@@ -40,34 +42,33 @@ const paymentSchema = new mongoose.Schema(
 
     amount: {
       currency: { type: String, default: "INR" },
-      baseAmount: { type: Number, required: true },
 
-      charges: [
-        {
-          type: String,
-          amount: Number,
-        },
-      ],
+      baseAmount: { type: Number, required: true, min: 0 },
 
-      taxes: [
-        {
-          type: {
-            type: String,
+      charges: {
+        type: [
+          {
+            chargeType: { type: String, required: true },
+            amount: { type: Number, required: true, min: 0 },
           },
-          rate: Number,
-          amount: Number,
-        },
-      ],
-
-      roundOff: {
-        type: Number,
-        default: 0,
+        ],
+        default: [],
       },
 
-      totalAmount: {
-        type: Number,
-        required: true,
+      taxes: {
+        type: [
+          {
+            taxType: { type: String, required: true },
+            rate: { type: Number, min: 0 },
+            amount: { type: Number, required: true, min: 0 },
+          },
+        ],
+        default: [],
       },
+
+      roundOff: { type: Number, default: 0 },
+
+      totalAmount: { type: Number, required: true, min: 1 },
     },
 
     status: {
@@ -90,13 +91,11 @@ const paymentSchema = new mongoose.Schema(
     idempotencyKey: {
       type: String,
       index: true,
+      sparse: true,
     },
 
     verification: {
-      verifiedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
+      verifiedBy: String, // temporary until User model
       verifiedAt: Date,
       remarks: String,
     },
@@ -104,30 +103,20 @@ const paymentSchema = new mongoose.Schema(
     failureReason: String,
 
     initiatedBy: {
-      type: String, // USER | ADMIN
+      type: String,
+      enum: ["USER", "ADMIN"],
     },
 
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    createdBy: String, // temporary
 
     statusHistory: [
       {
         status: String,
-        updatedAt: {
-          type: Date,
-          default: Date.now,
-        },
-        updatedBy: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
+        updatedAt: { type: Date, default: Date.now },
+        updatedBy: String,
         note: String,
       },
     ],
-
-    expiresAt: Date,
 
     meta: {
       type: Object,
@@ -138,5 +127,8 @@ const paymentSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// compound index for safety
+paymentSchema.index({ entityType: 1, entityId: 1 });
 
 export const Payment = mongoose.model("Payment", paymentSchema);
