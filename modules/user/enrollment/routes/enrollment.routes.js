@@ -11,6 +11,7 @@ import { completeUserEnrollmentPersonal } from "../controllers/enrollment/person
 import { completeUserEnrollmentKiosk } from "../controllers/enrollment/kiosk.controller.js";
 import { confirmUserEnrollmentPreview, getUserEnrollmentPreview } from "../controllers/enrollment/preview.controller.js";
 import { finalSubmitUserEnrollment } from "../controllers/enrollment/submit.controller.js";
+import { testIds } from "../controllers/enrollment/test.controller.js";
 
 const ROUTER = express.Router();
 
@@ -63,6 +64,8 @@ ROUTER.post("/personal/complete", personalUpload, completeUserEnrollmentPersonal
 ROUTER.post("/kiosk/complete", kioskUpload, completeUserEnrollmentKiosk);
 ROUTER.get("/preview", getUserEnrollmentPreview);
 ROUTER.post("/preview/confirm", confirmUserEnrollmentPreview);
-ROUTER.post ("/submit", finalSubmitUserEnrollment);
+ROUTER.post("/submit", finalSubmitUserEnrollment);
+
+ROUTER.get("/test-ids", testIds)
 
 export default ROUTER;

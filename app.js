@@ -19,7 +19,6 @@ app.use(express.json());
 // Global Middleware to Attach Request Metadata
 app.use(attachRequestMeta);
 
-
 // Health Check Endpoint
 app.get("/", (req, res) => {
   res.json({ message: "API is running" });

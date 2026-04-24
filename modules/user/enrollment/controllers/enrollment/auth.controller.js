@@ -8,6 +8,10 @@ import {
   ENROLLMENT_STATUS,
   USER_ENROLLMENT_FLOW_MODES,
 } from "../../../../../config/constants.config.js";
+import {
+  generatePublicId,
+  generateTRN,
+} from "../../../../../global/utils/idGenerator.util.js";
 
 export const completeUserEnrollmentAuth = async (req, res) => {
   try {
@@ -138,11 +142,8 @@ export const completeUserEnrollmentAuth = async (req, res) => {
     // CREATE NEW ENROLLMENT
     // =========================
 
-    const newTrnId = `TRN-${Date.now()}`;
-    const publicId = `${Math.random()
-      .toString(36)
-      .slice(2, 10)
-      .toUpperCase()}-${Date.now()}`;
+    const newTrnId = generateTRN();
+    const publicId = generatePublicId();
 
     const progress = ENROLLMENT_PROGRESS.DRAFT;
 
