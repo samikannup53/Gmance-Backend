@@ -8,6 +8,7 @@ import { attachRequestMeta } from "./middlewares/requestMeta.middleware.js";
 // Import Routes
 import preEnrollmentRoutes from "./modules/user/enrollment/routes/preEnrollment.routes.js";
 import enrollmentRoutes from "./modules/user/enrollment/routes/enrollment.routes.js";
+import paymentConfigRoutes from "./modules/payment/routes/paymentConfig.routes.js";
 import paymentRoutes from "./modules/payment/routes/payment.routes.js";
 
 const app = express();
@@ -29,5 +30,6 @@ app.get("/", (req, res) => {
 app.use("/api/pre-enrollment", preEnrollmentRoutes);
 app.use("/api/enrollment", enrollmentRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/payment-config", paymentConfigRoutes);
 
 export default app;

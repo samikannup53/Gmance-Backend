@@ -61,6 +61,7 @@ const paymentConfigSchema = new mongoose.Schema(
       },
 
       charges: {
+        _id: false,
         type: [
           {
             chargeType: String,
@@ -86,6 +87,7 @@ const paymentConfigSchema = new mongoose.Schema(
       taxes: {
         type: [
           {
+            _id: false,
             taxType: String,
             rate: Number,
           },
