@@ -17,7 +17,6 @@ const paymentAttemptSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
       required: true,
-      index: true,
     },
 
     // ======================================================
@@ -44,7 +43,6 @@ const paymentAttemptSchema = new mongoose.Schema(
       type: String,
       enum: PAYMENT_ATTEMPT_STATUS_VALUES,
       required: true,
-      index: true,
     },
 
     // ======================================================

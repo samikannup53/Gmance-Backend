@@ -1,10 +1,9 @@
-// Importing necessary modules and configurations
-import dotenv from "dotenv";
+// Import .env Variables
+import "dotenv/config";
+
+// Import the Express app and database connection
 import app from "./app.js";
 import connectDB from "./config/database.config.js";
-
-// Load environment variables
-dotenv.config();
 
 // Define the port to listen on
 const PORT = process.env.PORT || 3000;

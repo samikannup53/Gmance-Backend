@@ -1,26 +1,22 @@
 import crypto from "crypto";
 
+if (!process.env.APP_ENCRYPTION_SECRET) {
+  throw new Error("APP_ENCRYPTION_SECRET is not defined");
+}
+
 const ALGORITHM = "aes-256-gcm";
-
-const getEncryptionKey = () => {
-  const secret = process.env.APP_ENCRYPTION_SECRET;
-
-  if (!secret) {
-    throw new Error("APP_ENCRYPTION_SECRET is not defined");
-  }
-
-  return crypto.createHash("sha256").update(secret).digest();
-};
+const KEY = crypto
+  .createHash("sha256")
+  .update(process.env.APP_ENCRYPTION_SECRET)
+  .digest();
 
 // Encrypt Data using AES-256-GCM
 export const encrypt = (value) => {
   if (!value) return null;
 
-  const key = getEncryptionKey();
-
   const iv = crypto.randomBytes(12);
 
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
   let encrypted = cipher.update(value, "utf8", "hex");
   encrypted += cipher.final("hex");
@@ -43,12 +39,10 @@ export const decrypt = (cipherText) => {
 
   const [ivHex, authTagHex, encrypted] = parts;
 
-  const key = getEncryptionKey();
-
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
   decipher.setAuthTag(authTag);
 
   let decrypted = decipher.update(encrypted, "hex", "utf8");

@@ -20,7 +20,6 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
 
     entityType: {
@@ -38,7 +37,6 @@ const paymentSchema = new mongoose.Schema(
     entityId: {
       type: String,
       required: true,
-      index: true,
     },
 
     // ======================================================
@@ -116,7 +114,6 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: PAYMENT_STATUS_VALUES,
       default: PAYMENT_STATUS.CREATED,
-      index: true,
     },
 
     // ======================================================
@@ -137,7 +134,7 @@ const paymentSchema = new mongoose.Schema(
     // ======================================================
     idempotencyKey: {
       type: String,
-      index: true,
+      unique: true,
       sparse: true,
     },
 
@@ -185,8 +182,5 @@ const paymentSchema = new mongoose.Schema(
 // INDEXES
 // ======================================================
 paymentSchema.index({ entityType: 1, entityCode: 1, entityId: 1 });
-
-// Idempotency safety
-paymentSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 
 export const Payment = mongoose.model("Payment", paymentSchema);
