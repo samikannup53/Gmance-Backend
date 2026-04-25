@@ -1,48 +1,102 @@
 import mongoose from "mongoose";
 
+import {
+  PAYMENT_METHOD_VALUES,
+  PRICING_TYPE_VALUES,
+  CALCULATION_TYPE_VALUES,
+  APPLICABLE_ON_VALUES,
+} from "../../../constants/payment.constants.js";
+
 const paymentConfigSchema = new mongoose.Schema(
   {
+    // =============================
+    // Service Identification
+    // =============================
     entityType: {
-      type: String,
+      type: String, // PAN, ENROLLMENT, AGREEMENT, etc.
       required: true,
-      unique: true, // one config per entity
+      index: true,
     },
 
-    pricing: {
-      type: {
+    entityCode: {
+      type: String, // NEW_REGISTRATION, NEW_IND_PHYSICAL, etc.
+      required: true,
+      index: true,
+    },
+
+    // =============================
+    // Allowed Payment Methods
+    // =============================
+    allowedMethods: {
+      type: [
+        {
+          type: String,
+          enum: PAYMENT_METHOD_VALUES,
+        },
+      ],
+      required: true,
+    },
+
+    // =============================
+    // Pricing Type
+    // =============================
+    pricingType: {
+      type: String,
+      enum: PRICING_TYPE_VALUES,
+      required: true,
+    },
+
+    // =============================
+    // Amount Rules (NOT calculated)
+    // =============================
+    amount: {
+      currency: {
         type: String,
-        enum: ["STATIC", "DYNAMIC"],
-        required: true,
+        default: "INR",
       },
 
-      baseAmount: Number, // used if STATIC
+      baseAmount: {
+        type: Number, // used only if STATIC
+        min: 0,
+      },
+
+      charges: {
+        type: [
+          {
+            chargeType: String,
+
+            calculationType: {
+              type: String,
+              enum: CALCULATION_TYPE_VALUES,
+            },
+
+            value: Number,
+
+            applicableOn: [
+              {
+                type: String,
+                enum: APPLICABLE_ON_VALUES,
+              },
+            ],
+          },
+        ],
+        default: [],
+      },
+
+      taxes: {
+        type: [
+          {
+            taxType: String,
+            rate: Number,
+          },
+        ],
+        default: [],
+      },
     },
 
-    charges: {
-      type: [
-        {
-          chargeType: { type: String, required: true },
-          amount: { type: Number, required: true, min: 0 },
-        },
-      ],
-      default: [],
-    },
-
-    taxes: {
-      type: [
-        {
-          taxType: { type: String, required: true },
-          rate: { type: Number, required: true, min: 0 },
-        },
-      ],
-      default: [],
-    },
-
-    currency: {
-      type: String,
-      default: "INR",
-    },
-
+    // =============================
+    // Audit & Control
+    // =============================
     isActive: {
       type: Boolean,
       default: true,
@@ -52,11 +106,19 @@ const paymentConfigSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+
+    configuredBy: String,
+    updatedBy: String,
   },
   {
     timestamps: true,
   },
 );
+
+// =============================
+// Compound Unique Index
+// =============================
+paymentConfigSchema.index({ entityType: 1, entityCode: 1 }, { unique: true });
 
 export const PaymentConfig = mongoose.model(
   "PaymentConfig",
