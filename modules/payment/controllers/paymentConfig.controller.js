@@ -5,6 +5,11 @@ import {
   PRICING_TYPE_VALUES,
   CALCULATION_TYPE_VALUES,
   APPLICABLE_ON_VALUES,
+  ENTITY_TYPE_VALUES,
+  ENTITY_CODE,
+  BREAKDOWN_CODE_VALUES,
+  BREAKDOWN_CATEGORY_VALUES,
+  CHARGE_TYPE,
 } from "../../../constants/payment.constants.js";
 
 export const createPaymentConfig = async (req, res) => {
@@ -15,19 +20,37 @@ export const createPaymentConfig = async (req, res) => {
     // TEMP: Replace later with req.user.id
     const adminId = "SYSTEM_ADMIN";
 
-    // =============================
+    // ======================================================
     // Required Fields Validation
-    // =============================
+    // ======================================================
     if (!entityType || !entityCode || !pricingType) {
       return res.status(400).json({
         success: false,
-        message: "entityType, entityCode, pricingType are required",
+        message: "Entity Type, Entity Code And Pricing Type Are Required",
       });
     }
 
-    // =============================
-    // allowedMethods Validation
-    // =============================
+    // ======================================================
+    // Entity Validation
+    // ======================================================
+    if (!ENTITY_TYPE_VALUES.includes(entityType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Entity Type",
+      });
+    }
+
+    const validCodes = Object.values(ENTITY_CODE[entityType] || {});
+    if (!validCodes.includes(entityCode)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Entity Code For Given Entity Type",
+      });
+    }
+
+    // ======================================================
+    // Allowed Methods Validation
+    // ======================================================
     if (
       !Array.isArray(allowedMethods) ||
       allowedMethods.length === 0 ||
@@ -35,27 +58,27 @@ export const createPaymentConfig = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or empty allowedMethods",
+        message: "Invalid Or Empty Allowed Methods",
       });
     }
 
-    // =============================
-    // pricingType Validation
-    // =============================
+    // ======================================================
+    // Pricing Type Validation
+    // ======================================================
     if (!PRICING_TYPE_VALUES.includes(pricingType)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid ricingType",
+        message: "Invalid Pricing Type",
       });
     }
 
-    // =============================
-    // amount Validation
-    // =============================
+    // ======================================================
+    // Amount Validation
+    // ======================================================
     if (!amount || typeof amount !== "object") {
       return res.status(400).json({
         success: false,
-        message: "Amount object is required",
+        message: "Amount Object Is Required",
       });
     }
 
@@ -68,30 +91,79 @@ export const createPaymentConfig = async (req, res) => {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Valid baseAmount is required for STATIC pricing",
+          message: "Valid Base Amount Is Required For Static Pricing",
         });
       }
     }
 
-    // =============================
+    // ======================================================
+    // Breakdown Validation
+    // ======================================================
+    if (Array.isArray(amount.breakdown) && amount.breakdown.length > 0) {
+      let sum = 0;
+
+      for (const item of amount.breakdown) {
+        if (!BREAKDOWN_CODE_VALUES.includes(item.code)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Breakdown Code",
+          });
+        }
+
+        if (!BREAKDOWN_CATEGORY_VALUES.includes(item.category)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Breakdown Category",
+          });
+        }
+
+        if (typeof item.amount !== "number" || item.amount < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Breakdown Amount",
+          });
+        }
+
+        sum += item.amount;
+      }
+
+      if (amount.baseAmount !== undefined && sum !== amount.baseAmount) {
+        return res.status(400).json({
+          success: false,
+          message: "Breakdown Total Must Match Base Amount",
+        });
+      }
+    }
+
+    // ======================================================
     // Charges Validation
-    // =============================
+    // ======================================================
     if (Array.isArray(amount.charges) && amount.charges.length > 0) {
       for (const charge of amount.charges) {
+        if (
+          charge.chargeType &&
+          !Object.values(CHARGE_TYPE).includes(charge.chargeType)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Charge Type",
+          });
+        }
+
         if (
           !charge.calculationType ||
           !CALCULATION_TYPE_VALUES.includes(charge.calculationType)
         ) {
           return res.status(400).json({
             success: false,
-            message: "Invalid charge calculationType",
+            message: "Invalid Charge Calculation Type",
           });
         }
 
         if (typeof charge.value !== "number") {
           return res.status(400).json({
             success: false,
-            message: "Invalid charge value",
+            message: "Invalid Charge Value",
           });
         }
 
@@ -102,29 +174,29 @@ export const createPaymentConfig = async (req, res) => {
         ) {
           return res.status(400).json({
             success: false,
-            message: "Invalid applicableOn values",
+            message: "Invalid Applicable On Values",
           });
         }
       }
     }
 
-    // =============================
+    // ======================================================
     // Taxes Validation
-    // =============================
+    // ======================================================
     if (Array.isArray(amount.taxes) && amount.taxes.length > 0) {
       for (const tax of amount.taxes) {
         if (typeof tax.rate !== "number") {
           return res.status(400).json({
             success: false,
-            message: "Invalid tax rate",
+            message: "Invalid Tax Rate",
           });
         }
       }
     }
 
-    // =============================
+    // ======================================================
     // Create Payment Config
-    // =============================
+    // ======================================================
     const paymentConfig = await PaymentConfig.create({
       entityType,
       entityCode,
@@ -137,7 +209,7 @@ export const createPaymentConfig = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Payment config created successfully",
+      message: "Payment Config Created Successfully",
       data: paymentConfig,
     });
   } catch (error) {
@@ -148,11 +220,10 @@ export const createPaymentConfig = async (req, res) => {
       time: new Date().toISOString(),
     });
 
-    // Duplicate Key Error (unique index)
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: "Config already exists for this entityType + entityCode",
+        message: "Config Already Exists For This Entity Type And Entity Code",
       });
     }
 
@@ -162,3 +233,5 @@ export const createPaymentConfig = async (req, res) => {
     });
   }
 };
+
+

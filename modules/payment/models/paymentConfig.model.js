@@ -5,110 +5,109 @@ import {
   PRICING_TYPE_VALUES,
   CALCULATION_TYPE_VALUES,
   APPLICABLE_ON_VALUES,
+  ENTITY_TYPE_VALUES,
+  ENTITY_CODE_VALUES,
+  BREAKDOWN_CODE_VALUES,
+  BREAKDOWN_CATEGORY_VALUES,
+  CHARGE_TYPE,
 } from "../../../constants/payment.constants.js";
 
 const paymentConfigSchema = new mongoose.Schema(
   {
-    // =============================
-    // Service Identification
-    // =============================
+    // ======================================================
+    // SERVICE IDENTIFICATION
+    // ======================================================
     entityType: {
-      type: String, // PAN, ENROLLMENT, AGREEMENT, etc.
+      type: String,
+      enum: ENTITY_TYPE_VALUES,
       required: true,
       index: true,
     },
 
     entityCode: {
-      type: String, // NEW_REGISTRATION, NEW_IND_PHYSICAL, etc.
+      type: String,
+      enum: ENTITY_CODE_VALUES,
       required: true,
       index: true,
     },
 
-    // =============================
-    // Allowed Payment Methods
-    // =============================
+    // ======================================================
+    // PAYMENT METHODS
+    // ======================================================
     allowedMethods: {
-      type: [
-        {
-          type: String,
-          enum: PAYMENT_METHOD_VALUES,
-        },
-      ],
+      type: [{ type: String, enum: PAYMENT_METHOD_VALUES }],
       required: true,
     },
 
-    // =============================
-    // Pricing Type
-    // =============================
+    // ======================================================
+    // PRICING TYPE
+    // ======================================================
     pricingType: {
       type: String,
       enum: PRICING_TYPE_VALUES,
       required: true,
     },
 
-    // =============================
-    // Amount Rules (NOT calculated)
-    // =============================
+    // ======================================================
+    // AMOUNT CONFIGURATION
+    // ======================================================
     amount: {
-      currency: {
-        type: String,
-        default: "INR",
-      },
+      currency: { type: String, default: "INR" },
+      baseAmount: { type: Number, min: 0 },
 
-      baseAmount: {
-        type: Number, // used only if STATIC
-        min: 0,
-      },
-
-      charges: {
-        _id: false,
-        type: [
-          {
-            chargeType: String,
-
-            calculationType: {
-              type: String,
-              enum: CALCULATION_TYPE_VALUES,
-            },
-
-            value: Number,
-
-            applicableOn: [
-              {
-                type: String,
-                enum: APPLICABLE_ON_VALUES,
-              },
-            ],
-          },
-        ],
-        default: [],
-      },
-
-      taxes: {
+      // ------------------------------
+      // Base Amount Breakdown
+      // ------------------------------
+      breakdown: {
         type: [
           {
             _id: false,
-            taxType: String,
-            rate: Number,
+            code: { type: String, enum: BREAKDOWN_CODE_VALUES, required: true },
+            category: {
+              type: String,
+              enum: BREAKDOWN_CATEGORY_VALUES,
+              required: true,
+            },
+            amount: { type: Number, required: true, min: 0 },
           },
         ],
         default: [],
       },
+
+      // ------------------------------
+      // Additional Charges
+      // ------------------------------
+      charges: {
+        type: [
+          {
+            _id: false,
+            chargeType: {
+              type: String,
+              enum: Object.values(CHARGE_TYPE),
+              required: true,
+            },
+            calculationType: { type: String, enum: CALCULATION_TYPE_VALUES },
+            value: Number,
+            applicableOn: [{ type: String, enum: APPLICABLE_ON_VALUES }],
+          },
+        ],
+        default: [],
+      },
+
+      // ------------------------------
+      // Taxes
+      // ------------------------------
+      taxes: {
+        type: [{ _id: false, taxType: String, rate: Number }],
+        default: [],
+      },
     },
 
-    // =============================
-    // Audit & Control
-    // =============================
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-
-    version: {
-      type: Number,
-      default: 1,
-    },
-
+    // ======================================================
+    // AUDIT & CONTROL
+    // ======================================================
+    isActive: { type: Boolean, default: true },
+    version: { type: Number, default: 1 },
     configuredBy: String,
     updatedBy: String,
   },
@@ -117,9 +116,9 @@ const paymentConfigSchema = new mongoose.Schema(
   },
 );
 
-// =============================
-// Compound Unique Index
-// =============================
+// ======================================================
+// UNIQUE INDEX
+// ======================================================
 paymentConfigSchema.index({ entityType: 1, entityCode: 1 }, { unique: true });
 
 export const PaymentConfig = mongoose.model(
