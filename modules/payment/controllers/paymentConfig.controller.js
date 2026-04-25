@@ -234,4 +234,125 @@ export const createPaymentConfig = async (req, res) => {
   }
 };
 
+export const getAllPaymentConfigs = async (req, res) => {
+  try {
+    const { entityType, isActive } = req.query;
 
+    const filter = {};
+
+    if (entityType) filter.entityType = entityType;
+    if (isActive !== undefined) filter.isActive = isActive === "true";
+
+    const configs = await PaymentConfig.find(filter).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment Configs Fetched Successfully",
+      data: configs,
+    });
+  } catch (error) {
+    console.error("[getAllPaymentConfigs] Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const getPaymentConfigById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const config = await PaymentConfig.findById(id);
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment Config Not Found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment Config Fetched Successfully",
+      data: config,
+    });
+  } catch (error) {
+    console.error("[getPaymentConfigById] Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const updatePaymentConfig = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const config = await PaymentConfig.findById(id);
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment Config Not Found",
+      });
+    }
+
+    const updatedConfig = await PaymentConfig.findByIdAndUpdate(
+      id,
+      {
+        ...updateData,
+        updatedBy: "SYSTEM_ADMIN",
+      },
+      { new: true, runValidators: true },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment Config Updated Successfully",
+      data: updatedConfig,
+    });
+  } catch (error) {
+    console.error("[updatePaymentConfig] Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const deletePaymentConfig = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const config = await PaymentConfig.findById(id);
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment Config Not Found",
+      });
+    }
+
+    config.isActive = false;
+    config.updatedBy = "SYSTEM_ADMIN";
+    await config.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment Config Deactivated Successfully",
+    });
+  } catch (error) {
+    console.error("[deletePaymentConfig] Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
