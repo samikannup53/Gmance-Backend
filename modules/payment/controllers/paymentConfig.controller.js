@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { PaymentConfig } from "../models/paymentConfig.model.js";
 
 import {
@@ -236,22 +237,21 @@ export const createPaymentConfig = async (req, res) => {
 
 export const getAllPaymentConfigs = async (req, res) => {
   try {
-    const { entityType, isActive } = req.query;
-
-    const filter = {};
-
-    if (entityType) filter.entityType = entityType;
-    if (isActive !== undefined) filter.isActive = isActive === "true";
-
-    const configs = await PaymentConfig.find(filter).sort({ createdAt: -1 });
+    const configs = await PaymentConfig.find().sort({ createdAt: -1 }).lean();
 
     return res.status(200).json({
       success: true,
       message: "Payment Configs Fetched Successfully",
+      totalPaymentConfigs: configs.length,
       data: configs,
     });
   } catch (error) {
-    console.error("[getAllPaymentConfigs] Error:", error);
+    console.error("[getAllPaymentConfigs] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
 
     return res.status(500).json({
       success: false,
@@ -264,7 +264,30 @@ export const getPaymentConfigById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const config = await PaymentConfig.findById(id);
+    // =============================
+    // Basic Validation
+    // =============================
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Id Is Required",
+      });
+    }
+
+    // =============================
+    // ObjectId Validation
+    // =============================
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Config ID",
+      });
+    }
+
+    // =============================
+    // Fetch Config
+    // =============================
+    const config = await PaymentConfig.findById(id).lean();
 
     if (!config) {
       return res.status(404).json({
@@ -273,13 +296,21 @@ export const getPaymentConfigById = async (req, res) => {
       });
     }
 
+    // =============================
+    // Success Response
+    // =============================
     return res.status(200).json({
       success: true,
       message: "Payment Config Fetched Successfully",
       data: config,
     });
   } catch (error) {
-    console.error("[getPaymentConfigById] Error:", error);
+    console.error("[getPaymentConfigById] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
 
     return res.status(500).json({
       success: false,
@@ -291,7 +322,26 @@ export const getPaymentConfigById = async (req, res) => {
 export const updatePaymentConfig = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const data = req.body;
+
+    const adminId = "SYSTEM_ADMIN";
+
+    // =============================
+    // Basic Validation
+    // =============================
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Id Is Required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Id Format",
+      });
+    }
 
     const config = await PaymentConfig.findById(id);
 
@@ -302,22 +352,271 @@ export const updatePaymentConfig = async (req, res) => {
       });
     }
 
-    const updatedConfig = await PaymentConfig.findByIdAndUpdate(
-      id,
-      {
-        ...updateData,
-        updatedBy: "SYSTEM_ADMIN",
-      },
-      { new: true, runValidators: true },
-    );
+    if (!config.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot Update Inactive Payment Config",
+      });
+    }
+
+    // =============================
+    // Prevent Identity Change
+    // =============================
+    if (data.entityType || data.entityCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Entity Type And Entity Code Cannot Be Updated",
+      });
+    }
+
+    // =============================
+    // allowedMethods Validation
+    // =============================
+    if (data.allowedMethods) {
+      if (
+        !Array.isArray(data.allowedMethods) ||
+        data.allowedMethods.length === 0 ||
+        !data.allowedMethods.every((m) => PAYMENT_METHOD_VALUES.includes(m))
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Allowed Methods",
+        });
+      }
+
+      // Prevent duplicates
+      if (new Set(data.allowedMethods).size !== data.allowedMethods.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Duplicate Payment Methods Not Allowed",
+        });
+      }
+
+      config.allowedMethods = data.allowedMethods;
+    }
+
+    // =============================
+    // pricingType Validation
+    // =============================
+    if (data.pricingType) {
+      if (!PRICING_TYPE_VALUES.includes(data.pricingType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Pricing Type",
+        });
+      }
+
+      config.pricingType = data.pricingType;
+    }
+
+    // =============================
+    // Amount Validation (STRICT)
+    // =============================
+    if (data.amount) {
+      const { currency, baseAmount, breakdown, charges, taxes } = data.amount;
+
+      // Required structure
+      if (
+        typeof currency !== "string" ||
+        typeof baseAmount !== "number" ||
+        baseAmount < 0 ||
+        !Array.isArray(breakdown) ||
+        !Array.isArray(charges) ||
+        !Array.isArray(taxes)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Complete Amount Object Is Required",
+        });
+      }
+
+      // Breakdown validation
+      if (breakdown.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Breakdown Cannot Be Empty",
+        });
+      }
+
+      for (const item of breakdown) {
+        if (
+          typeof item.code !== "string" ||
+          typeof item.category !== "string" ||
+          typeof item.amount !== "number" ||
+          item.amount < 0
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Breakdown Configuration",
+          });
+        }
+      }
+
+      // BaseAmount vs Breakdown check
+      const totalBreakdown = breakdown.reduce(
+        (sum, item) => sum + item.amount,
+        0,
+      );
+
+      if (totalBreakdown !== baseAmount) {
+        return res.status(400).json({
+          success: false,
+          message: "Base Amount Must Match Breakdown Total",
+        });
+      }
+
+      // Charges validation
+      for (const charge of charges) {
+        if (
+          !CALCULATION_TYPE_VALUES.includes(charge.calculationType) ||
+          typeof charge.value !== "number"
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Charges Configuration",
+          });
+        }
+
+        if (
+          charge.applicableOn &&
+          (!Array.isArray(charge.applicableOn) ||
+            !charge.applicableOn.every((a) => APPLICABLE_ON_VALUES.includes(a)))
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid ApplicableOn Values",
+          });
+        }
+      }
+
+      // Taxes validation
+      for (const tax of taxes) {
+        if (
+          typeof tax.taxType !== "string" ||
+          typeof tax.rate !== "number" ||
+          tax.rate < 0
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid Taxes Configuration",
+          });
+        }
+      }
+
+      // Replace full amount
+      config.amount = data.amount;
+    }
+
+    // =============================
+    // isActive
+    // =============================
+    if (typeof data.isActive === "boolean") {
+      config.isActive = data.isActive;
+    }
+
+    // =============================
+    // Audit
+    // =============================
+    config.updatedBy = adminId;
+    config.version += 1;
+
+    await config.save();
 
     return res.status(200).json({
       success: true,
       message: "Payment Config Updated Successfully",
-      data: updatedConfig,
+      data: config.toObject(),
     });
   } catch (error) {
-    console.error("[updatePaymentConfig] Error:", error);
+    console.error("[updatePaymentConfig] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const togglePaymentConfigStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const adminId = "SYSTEM_ADMIN";
+
+    // =============================
+    // Validation
+    // =============================
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Id Is Required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Id Format",
+      });
+    }
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "Is Active Must Be Boolean",
+      });
+    }
+
+    const config = await PaymentConfig.findById(id);
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment Config Not Found",
+      });
+    }
+
+    // =============================
+    // No Change Check (IMPORTANT)
+    // =============================
+    if (config.isActive === isActive) {
+      return res.status(400).json({
+        success: false,
+        message: `Payment Config Is Already ${
+          isActive ? "Active" : "Inactive"
+        }`,
+      });
+    }
+
+    // =============================
+    // Update Status
+    // =============================
+    config.isActive = isActive;
+    config.updatedBy = adminId;
+    config.version += 1;
+
+    await config.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Payment Config ${
+        isActive ? "Activated" : "Deactivated"
+      } Successfully`,
+      data: config.toObject(),
+    });
+  } catch (error) {
+    console.error("[togglePaymentConfigStatus] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
 
     return res.status(500).json({
       success: false,
@@ -330,6 +629,23 @@ export const deletePaymentConfig = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // =============================
+    // Validation
+    // =============================
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Id Is Required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Id Format",
+      });
+    }
+
     const config = await PaymentConfig.findById(id);
 
     if (!config) {
@@ -339,16 +655,29 @@ export const deletePaymentConfig = async (req, res) => {
       });
     }
 
-    config.isActive = false;
-    config.updatedBy = "SYSTEM_ADMIN";
-    await config.save();
+    if (config.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Deactivate Config Before Deleting",
+      });
+    }
+
+    // =============================
+    // Hard Delete
+    // =============================
+    await PaymentConfig.findByIdAndDelete(id);
 
     return res.status(200).json({
       success: true,
-      message: "Payment Config Deactivated Successfully",
+      message: "Payment Config Deleted Permanently",
     });
   } catch (error) {
-    console.error("[deletePaymentConfig] Error:", error);
+    console.error("[deletePaymentConfig] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
 
     return res.status(500).json({
       success: false,

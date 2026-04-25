@@ -4,6 +4,7 @@ import {
   deletePaymentConfig,
   getAllPaymentConfigs,
   getPaymentConfigById,
+  togglePaymentConfigStatus,
   updatePaymentConfig,
 } from "../controllers/paymentConfig.controller.js";
 
@@ -13,7 +14,8 @@ const ROUTER = express.Router();
 ROUTER.post("/create", createPaymentConfig);
 ROUTER.get("/", getAllPaymentConfigs);
 ROUTER.get("/:id", getPaymentConfigById);
-ROUTER.put("/:id", updatePaymentConfig);
+ROUTER.patch("/:id", updatePaymentConfig);
+ROUTER.patch("/:id/status", togglePaymentConfigStatus);
 ROUTER.delete("/:id", deletePaymentConfig);
 
 export default ROUTER;
