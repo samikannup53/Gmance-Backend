@@ -3,40 +3,53 @@ import mongoose from "mongoose";
 import {
   PAYMENT_METHOD,
   PAYMENT_GATEWAY,
+  PAYMENT_ATTEMPT_STATUS_VALUES,
+  PAYMENT_ATTEMPT_CHANNEL_VALUES,
+  DIRECT_PAYMENT_METHOD_VALUES,
 } from "../../../constants/payment.constants.js";
 
 const paymentAttemptSchema = new mongoose.Schema(
   {
-    // Link to parent payment
+    // ======================================================
+    // LINK TO PARENT PAYMENT
+    // ======================================================
     paymentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
       required: true,
       index: true,
     },
-    paymentReferenceId: String,
 
-    // Attempt sequence
+    // ======================================================
+    // ATTEMPT SEQUENCE
+    // ======================================================
     attemptNumber: {
       type: Number,
       required: true,
     },
 
-    // Method (DIRECT / GATEWAY)
+    // ======================================================
+    // EXECUTION METHOD (HIGH LEVEL)
+    // ======================================================
     method: {
       type: String,
-      enum: Object.values(PAYMENT_METHOD),
+      enum: Object.values(PAYMENT_METHOD), // DIRECT / GATEWAY / WALLET
       required: true,
     },
 
-    // Attempt status (independent of payment)
+    // ======================================================
+    // ATTEMPT STATUS
+    // ======================================================
     status: {
       type: String,
+      enum: PAYMENT_ATTEMPT_STATUS_VALUES,
       required: true,
       index: true,
     },
 
-    // Gateway execution details
+    // ======================================================
+    // GATEWAY EXECUTION DETAILS
+    // ======================================================
     gateway: {
       provider: {
         type: String,
@@ -46,19 +59,33 @@ const paymentAttemptSchema = new mongoose.Schema(
       orderId: String,
       paymentId: String,
 
+      paidAmount: Number,
+
       link: {
         url: String,
         referenceId: String,
       },
 
-      channel: String, // SMS / EMAIL / LINK
+      channel: {
+        type: String,
+        enum: PAYMENT_ATTEMPT_CHANNEL_VALUES,
+      },
 
-      rawResponse: Object,
+      rawResponse: {
+        type: Object,
+        select: false, // prevents heavy payload in normal queries
+      },
     },
 
-    // Direct/manual execution details
+    // ======================================================
+    // DIRECT / MANUAL PAYMENT DETAILS
+    // ======================================================
     direct: {
-      method: String, // UPI / BANK / CASH
+      method: {
+        type: String,
+        enum: DIRECT_PAYMENT_METHOD_VALUES, // UPI / NEFT / IMPS / CASH_DEPOSIT
+      },
+
       txnRef: String,
       txnDate: Date,
 
@@ -66,29 +93,52 @@ const paymentAttemptSchema = new mongoose.Schema(
       remarks: String,
     },
 
-    // Lifecycle timestamps (per attempt)
-    timestamps: {
+    // ======================================================
+    // TIMESTAMPS (PER ATTEMPT LIFECYCLE)
+    // ======================================================
+    lifecycle: {
       createdAt: {
         type: Date,
         default: Date.now,
       },
 
-      lastSentAt: Date,
-      expiresAt: Date,
-      paidAt: Date,
-      recordedAt: Date,
+      lastSentAt: Date, // link sent
+      expiresAt: Date, // link expiry
+      paidAt: Date, // payment completed
+      recordedAt: Date, // manual entry recorded
     },
 
+    // ======================================================
+    // FAILURE
+    // ======================================================
     failureReason: String,
 
-    // Temporary audit fields (until User model)
+    // ======================================================
+    // AUDIT
+    // ======================================================
     createdBy: String,
     updatedBy: String,
   },
   {
-    timestamps: true,
+    timestamps: true, // createdAt, updatedAt (document level)
   },
 );
+
+// ======================================================
+// INDEXES
+// ======================================================
+
+// Prevent duplicate attempt numbers per payment
+paymentAttemptSchema.index(
+  { paymentId: 1, attemptNumber: 1 },
+  { unique: true },
+);
+
+// Optional: faster lookup of attempts by status
+paymentAttemptSchema.index({ status: 1 });
+
+// Optional: filter by method quickly
+paymentAttemptSchema.index({ method: 1 });
 
 export const PaymentAttempt = mongoose.model(
   "PaymentAttempt",

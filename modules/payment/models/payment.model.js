@@ -2,9 +2,10 @@ import mongoose from "mongoose";
 
 import {
   ENTITY_TYPE_VALUES,
+  ENTITY_CODE_VALUES,
   PAYMENT_FLOW,
-  PAYMENT_METHOD,
   PAYMENT_STATUS,
+  PAYMENT_STATUS_VALUES,
   BREAKDOWN_CODE_VALUES,
   BREAKDOWN_CATEGORY_VALUES,
   CHARGE_TYPE,
@@ -28,24 +29,24 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
 
+    entityCode: {
+      type: String,
+      enum: ENTITY_CODE_VALUES,
+      required: true,
+    },
+
     entityId: {
-      type: String, // internal ID like TRN-20001
+      type: String,
       required: true,
       index: true,
     },
 
     // ======================================================
-    // FLOW & METHOD
+    // FLOW (NO METHOD HERE)
     // ======================================================
     flow: {
       type: String,
       enum: Object.values(PAYMENT_FLOW),
-      required: true,
-    },
-
-    method: {
-      type: String,
-      enum: Object.values(PAYMENT_METHOD),
       required: true,
     },
 
@@ -57,77 +58,51 @@ const paymentSchema = new mongoose.Schema(
 
       baseAmount: { type: Number, required: true, min: 0 },
 
-      // ------------------------------
-      // Breakdown (copied from config)
-      // ------------------------------
-      breakdown: {
-        type: [
-          {
-            _id: false,
-
-            code: {
-              type: String,
-              enum: BREAKDOWN_CODE_VALUES,
-              required: true,
-            },
-
-            category: {
-              type: String,
-              enum: BREAKDOWN_CATEGORY_VALUES,
-              required: true,
-            },
-
-            amount: {
-              type: Number,
-              required: true,
-              min: 0,
-            },
+      breakdown: [
+        {
+          _id: false,
+          code: {
+            type: String,
+            enum: BREAKDOWN_CODE_VALUES,
+            required: true,
           },
-        ],
-        default: [],
-      },
-
-      // ------------------------------
-      // Charges (calculated at runtime)
-      // ------------------------------
-      charges: {
-        type: [
-          {
-            _id: false,
-
-            chargeType: {
-              type: String,
-              enum: Object.values(CHARGE_TYPE),
-              required: true,
-            },
-
-            amount: {
-              type: Number,
-              required: true,
-              min: 0,
-            },
+          category: {
+            type: String,
+            enum: BREAKDOWN_CATEGORY_VALUES,
+            required: true,
           },
-        ],
-        default: [],
-      },
-
-      // ------------------------------
-      // Taxes
-      // ------------------------------
-      taxes: {
-        type: [
-          {
-            _id: false,
-
-            taxType: { type: String, required: true },
-
-            rate: { type: Number, min: 0 },
-
-            amount: { type: Number, required: true, min: 0 },
+          amount: {
+            type: Number,
+            required: true,
+            min: 0,
           },
-        ],
-        default: [],
-      },
+        },
+      ],
+
+      charges: [
+        {
+          _id: false,
+          chargeType: {
+            type: String,
+            enum: Object.values(CHARGE_TYPE),
+            required: true,
+          },
+          amount: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+        },
+      ],
+
+      taxes: [
+        {
+          _id: false,
+          taxType: { type: String, required: true },
+          rate: { type: Number, min: 0 },
+          amount: { type: Number, required: true, min: 0 },
+        },
+      ],
 
       roundOff: { type: Number, default: 0 },
 
@@ -139,13 +114,13 @@ const paymentSchema = new mongoose.Schema(
     // ======================================================
     status: {
       type: String,
-      enum: Object.values(PAYMENT_STATUS),
+      enum: PAYMENT_STATUS_VALUES,
       default: PAYMENT_STATUS.CREATED,
       index: true,
     },
 
     // ======================================================
-    // ATTEMPTS & IDEMPOTENCY
+    // ATTEMPTS
     // ======================================================
     attemptsCount: {
       type: Number,
@@ -157,6 +132,9 @@ const paymentSchema = new mongoose.Schema(
       ref: "PaymentAttempt",
     },
 
+    // ======================================================
+    // IDEMPOTENCY
+    // ======================================================
     idempotencyKey: {
       type: String,
       index: true,
@@ -177,17 +155,16 @@ const paymentSchema = new mongoose.Schema(
     // ======================================================
     // AUDIT
     // ======================================================
-    initiatedBy: {
-      type: String,
-      enum: ["USER", "ADMIN"],
-    },
-
+    initiatedBy: { type: String, enum: ["USER", "ADMIN"] },
     createdBy: String,
 
     statusHistory: [
       {
         _id: false,
-        status: String,
+        status: {
+          type: String,
+          enum: PAYMENT_STATUS_VALUES,
+        },
         updatedAt: { type: Date, default: Date.now },
         updatedBy: String,
         note: String,
@@ -207,6 +184,9 @@ const paymentSchema = new mongoose.Schema(
 // ======================================================
 // INDEXES
 // ======================================================
-paymentSchema.index({ entityType: 1, entityId: 1 });
+paymentSchema.index({ entityType: 1, entityCode: 1, entityId: 1 });
+
+// Idempotency safety
+paymentSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 
 export const Payment = mongoose.model("Payment", paymentSchema);

@@ -131,10 +131,54 @@ export const BREAKDOWN_CATEGORY_VALUES = Object.values(BREAKDOWN_CATEGORY);
 // ======================================================
 export const PAYMENT_STATUS = {
   CREATED: "CREATED",
-  PENDING: "PENDING",
+  RECORDED: "RECORDED",
   VERIFICATION_PENDING: "VERIFICATION_PENDING",
   SUCCESS: "SUCCESS",
   FAILED: "FAILED",
 };
 
 export const PAYMENT_STATUS_VALUES = Object.values(PAYMENT_STATUS);
+
+// ======================================================
+// PAYMENT ATTEMPT STATUS (Lifecycle)
+// ======================================================
+export const PAYMENT_ATTEMPT_STATUS = {
+  CREATED: "CREATED",
+  LINK_GENERATED: "LINK_GENERATED",
+  LINK_SHARED: "LINK_SHARED",
+  VERIFICATION_PENDING: "VERIFICATION_PENDING",
+  SUCCESS: "SUCCESS",
+  FAILED: "FAILED",
+  EXPIRED: "EXPIRED",
+};
+
+export const PAYMENT_ATTEMPT_STATUS_VALUES = Object.values(
+  PAYMENT_ATTEMPT_STATUS,
+);
+
+// ======================================================
+// PAYMENT ATTEMPT CHANNEL
+// ======================================================
+export const PAYMENT_ATTEMPT_CHANNEL = {
+  SMS: "SMS",
+  EMAIL: "EMAIL",
+  LINK: "LINK",
+};
+
+export const PAYMENT_ATTEMPT_CHANNEL_VALUES = Object.values(
+  PAYMENT_ATTEMPT_CHANNEL
+);
+
+// ======================================================
+// DIRECT PAYMENT METHODS
+// ======================================================
+export const DIRECT_PAYMENT_METHOD = {
+  UPI: "UPI",
+  NEFT: "NEFT",
+  IMPS: "IMPS",
+  CASH_DEPOSIT: "CASH_DEPOSIT",
+};
+
+export const DIRECT_PAYMENT_METHOD_VALUES = Object.values(
+  DIRECT_PAYMENT_METHOD
+);
