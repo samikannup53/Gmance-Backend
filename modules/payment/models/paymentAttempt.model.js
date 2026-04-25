@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import {
   PAYMENT_METHOD,
   PAYMENT_GATEWAY,
-} from "../constants/payment.constants.js";
+} from "../../../constants/payment.constants.js";
 
 const paymentAttemptSchema = new mongoose.Schema(
   {

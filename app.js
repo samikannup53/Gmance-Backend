@@ -8,6 +8,7 @@ import { attachRequestMeta } from "./middlewares/requestMeta.middleware.js";
 // Import Routes
 import preEnrollmentRoutes from "./modules/user/enrollment/routes/preEnrollment.routes.js";
 import enrollmentRoutes from "./modules/user/enrollment/routes/enrollment.routes.js";
+import paymentRoutes from "./modules/payment/routes/payment.routes.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -27,5 +28,6 @@ app.get("/", (req, res) => {
 // Mount Routes
 app.use("/api/pre-enrollment", preEnrollmentRoutes);
 app.use("/api/enrollment", enrollmentRoutes);
+app.use("/api/payment", paymentRoutes);
 
 export default app;

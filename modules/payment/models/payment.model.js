@@ -5,7 +5,7 @@ import {
   PAYMENT_FLOW,
   PAYMENT_METHOD,
   PAYMENT_STATUS,
-} from "../constants/payment.constants.js";
+} from "../../../constants/payment.constants.js";
 
 const paymentSchema = new mongoose.Schema(
   {
