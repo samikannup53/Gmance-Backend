@@ -4,7 +4,7 @@ import { handlePaymentSuccess } from "../../services/handlePaymentSuccess.servic
 import {
   PAYMENT_STATUS,
   PAYMENT_ATTEMPT_STATUS,
-} from "../../../constants/payment.constants.js";
+} from "../../../../constants/payment.constants.js";
 
 const formatEntity = (entity) =>
   entity
