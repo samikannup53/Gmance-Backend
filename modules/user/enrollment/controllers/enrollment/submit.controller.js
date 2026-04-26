@@ -295,10 +295,28 @@ export const finalSubmitUserEnrollment = async (req, res) => {
     }
 
     // =========================
+    // PAYMENT CHECK
+    // =========================
+
+    const isPaymentRequired =
+      enrollment.userType === "ASSOCIATE" &&
+      ["NEW_REGISTRATION", "AGREEMENT_RENEWAL"].includes(
+        enrollment.enrollmentType,
+      );
+
+    enrollment.process.payment.isRequired = isPaymentRequired;
+
+    if (isPaymentRequired && !enrollment.process.payment.status) {
+      enrollment.process.payment.status = "PENDING";
+    }
+
+    // =========================
     // FINAL STATE TRANSITION
     // =========================
 
-    const progress = ENROLLMENT_PROGRESS.SUBMITTED;
+    const progress = isPaymentRequired
+      ? ENROLLMENT_PROGRESS.PAYMENT_PENDING
+      : ENROLLMENT_PROGRESS.SUBMITTED;
 
     enrollment.enrollmentProgress = progress;
     enrollment.enrollmentStatus = ENROLLMENT_PROGRESS_STATUS_MAP[progress];

@@ -102,8 +102,6 @@ const paymentSchema = new mongoose.Schema(
         },
       ],
 
-      roundOff: { type: Number, default: 0 },
-
       totalAmount: { type: Number, required: true, min: 1 },
     },
 
@@ -127,15 +125,6 @@ const paymentSchema = new mongoose.Schema(
     currentAttemptId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "PaymentAttempt",
-    },
-
-    // ======================================================
-    // IDEMPOTENCY
-    // ======================================================
-    idempotencyKey: {
-      type: String,
-      unique: true,
-      sparse: true,
     },
 
     // ======================================================

@@ -15,12 +15,21 @@ export const PAYMENT_FLOW = {
 };
 
 // ======================================================
+// GATEWAY FLOW (How Gateway Is Used)
+// ======================================================
+export const PAYMENT_GATEWAY_FLOW = {
+  LINK: "LINK", // Admin/Employee shares payment link
+  CHECKOUT: "CHECKOUT", // User completes via Razorpay UI
+};
+
+export const PAYMENT_GATEWAY_FLOW_VALUES = Object.values(PAYMENT_GATEWAY_FLOW);
+
+// ======================================================
 // PAYMENT METHODS (Execution Mode)
 // ======================================================
 export const PAYMENT_METHOD = {
   DIRECT: "DIRECT", // Manual (UPI / Bank / Cash)
   GATEWAY: "GATEWAY", // Online gateway
-  WALLET: "WALLET", // Internal wallet
 };
 
 export const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHOD);
@@ -57,7 +66,7 @@ export const APPLICABLE_ON_VALUES = PAYMENT_METHOD_VALUES;
 // ENTITY TYPES (Business Domains)
 // ======================================================
 export const ENTITY_TYPE = {
-  ENROLLMENT: "ENROLLMENT",
+  USER_ENROLLMENT: "USER_ENROLLMENT",
   PAN: "PAN",
   UTILITY: "UTILITY",
   WALLET: "WALLET",
@@ -166,7 +175,7 @@ export const PAYMENT_ATTEMPT_CHANNEL = {
 };
 
 export const PAYMENT_ATTEMPT_CHANNEL_VALUES = Object.values(
-  PAYMENT_ATTEMPT_CHANNEL
+  PAYMENT_ATTEMPT_CHANNEL,
 );
 
 // ======================================================
@@ -180,5 +189,5 @@ export const DIRECT_PAYMENT_METHOD = {
 };
 
 export const DIRECT_PAYMENT_METHOD_VALUES = Object.values(
-  DIRECT_PAYMENT_METHOD
+  DIRECT_PAYMENT_METHOD,
 );

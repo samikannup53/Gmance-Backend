@@ -290,7 +290,6 @@ const enrollmentSchema = new mongoose.Schema(
         status: {
           type: String,
           enum: ["PENDING", "INITIATED", "SUCCESS", "FAILED"],
-          default: "PENDING",
         },
         referenceId: String,
         paidAt: Date,

@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 
 import {
-  PAYMENT_METHOD,
+  PAYMENT_METHOD_VALUES, // ✅ cleaner import
   PAYMENT_GATEWAY,
+  PAYMENT_GATEWAY_FLOW_VALUES, // ✅ added
   PAYMENT_ATTEMPT_STATUS_VALUES,
   PAYMENT_ATTEMPT_CHANNEL_VALUES,
   DIRECT_PAYMENT_METHOD_VALUES,
@@ -28,12 +29,28 @@ const paymentAttemptSchema = new mongoose.Schema(
     },
 
     // ======================================================
+    // IDEMPOTENCY
+    // ======================================================
+    idempotencyKey: {
+      type: String,
+      trim: true,
+    },
+
+    // ======================================================
     // EXECUTION METHOD (HIGH LEVEL)
     // ======================================================
     method: {
       type: String,
-      enum: Object.values(PAYMENT_METHOD), // DIRECT / GATEWAY / WALLET
+      enum: PAYMENT_METHOD_VALUES, // ✅ cleaner
       required: true,
+    },
+
+    // ======================================================
+    // GATEWAY FLOW (LINK / CHECKOUT)
+    // ======================================================
+    gatewayFlow: {
+      type: String,
+      enum: PAYMENT_GATEWAY_FLOW_VALUES,
     },
 
     // ======================================================
@@ -71,7 +88,7 @@ const paymentAttemptSchema = new mongoose.Schema(
 
       rawResponse: {
         type: Object,
-        select: false, // prevents heavy payload in normal queries
+        select: false,
       },
     },
 
@@ -81,7 +98,7 @@ const paymentAttemptSchema = new mongoose.Schema(
     direct: {
       method: {
         type: String,
-        enum: DIRECT_PAYMENT_METHOD_VALUES, // UPI / NEFT / IMPS / CASH_DEPOSIT
+        enum: DIRECT_PAYMENT_METHOD_VALUES,
       },
 
       txnRef: String,
@@ -100,10 +117,10 @@ const paymentAttemptSchema = new mongoose.Schema(
         default: Date.now,
       },
 
-      lastSentAt: Date, // link sent
-      expiresAt: Date, // link expiry
-      paidAt: Date, // payment completed
-      recordedAt: Date, // manual entry recorded
+      lastSentAt: Date,
+      expiresAt: Date,
+      paidAt: Date,
+      recordedAt: Date,
     },
 
     // ======================================================
@@ -118,7 +135,7 @@ const paymentAttemptSchema = new mongoose.Schema(
     updatedBy: String,
   },
   {
-    timestamps: true, // createdAt, updatedAt (document level)
+    timestamps: true,
   },
 );
 
@@ -126,16 +143,17 @@ const paymentAttemptSchema = new mongoose.Schema(
 // INDEXES
 // ======================================================
 
-// Prevent duplicate attempt numbers per payment
 paymentAttemptSchema.index(
   { paymentId: 1, attemptNumber: 1 },
   { unique: true },
 );
 
-// Optional: faster lookup of attempts by status
-paymentAttemptSchema.index({ status: 1 });
+paymentAttemptSchema.index(
+  { paymentId: 1, idempotencyKey: 1 },
+  { unique: true, sparse: true },
+);
 
-// Optional: filter by method quickly
+paymentAttemptSchema.index({ status: 1 });
 paymentAttemptSchema.index({ method: 1 });
 
 export const PaymentAttempt = mongoose.model(
