@@ -25,7 +25,7 @@ const enrollmentSchema = new mongoose.Schema(
       type: String,
       enum: [
         "AWAITING_SUBMISSION",
-        "UNDER_EVOLUTION",
+        "UNDER_REVIEW",
         "APPROVED",
         "REJECTED",
         "ON_HOLD",

@@ -1,5 +1,8 @@
 import { Payment } from "../../models/payment.model.js";
 import { PaymentAttempt } from "../../models/paymentAttempt.model.js";
+
+import { handlePaymentSuccess } from "../../services/handlePaymentSuccess.service.js";
+
 import {
   PAYMENT_STATUS,
   PAYMENT_ATTEMPT_STATUS,
@@ -60,8 +63,8 @@ export const verifyDirectPayment = async (req, res) => {
     // =========================
     // BENEFITS
     // =========================
-    if (decision === "APPROVED") {
-      // await handlePaymentSuccess(payment);
+    if (decision === "APPROVED" && payment.status === PAYMENT_STATUS.SUCCESS) {
+      await handlePaymentSuccess(payment);
     }
 
     return res.status(200).json({

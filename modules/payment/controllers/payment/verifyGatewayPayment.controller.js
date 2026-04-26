@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Payment } from "../../models/payment.model.js";
 import { PaymentAttempt } from "../../models/paymentAttempt.model.js";
+import {handlePaymentSuccess} from "../../services/handlePaymentSuccess.service.js"
 import {
   PAYMENT_STATUS,
   PAYMENT_ATTEMPT_STATUS,
@@ -63,7 +64,9 @@ export const verifyGatewayPayment = async (req, res) => {
     // =========================
     // TRIGGER BENEFITS
     // =========================
-    // await handlePaymentSuccess(payment);
+    if (payment.status === PAYMENT_STATUS.SUCCESS) {
+      await handlePaymentSuccess(payment);
+    }
 
     return res.status(200).json({
       success: true,
