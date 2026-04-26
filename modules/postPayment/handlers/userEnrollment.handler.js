@@ -7,55 +7,42 @@ import {
 export const handleUserEnrollmentPaymentSuccess = async (payment) => {
   const { entityId, entityCode, referenceId } = payment;
 
-  // =========================
-  // FETCH ENROLLMENT
-  // =========================
   const enrollment = await UserEnrollment.findOne({ trnId: entityId });
 
   if (!enrollment) {
-    throw new Error("Enrollment not found for payment processing");
+    const error = new Error("Enrollment Record Not Found");
+    error.isOperational = true;
+    throw error;
   }
 
-  // =========================
-  // VALIDATE ENTITY CODE
-  // =========================
   if (enrollment.enrollmentType !== entityCode) {
-    throw new Error("Enrollment type mismatch for payment");
+    const error = new Error("Enrollment Type does not match Payment");
+    error.isOperational = true;
+    throw error;
   }
 
   const paymentBlock = enrollment.process?.payment;
 
-  // =========================
-  // IDEMPOTENCY CHECK
-  // =========================
   if (paymentBlock?.status === "SUCCESS") {
-    return; // already processed → safe exit
+    const error = new Error("Payment has already been Verified");
+    error.isOperational = true;
+    throw error;
   }
 
-  // =========================
-  // STAGE VALIDATION
-  // =========================
   if (enrollment.enrollmentProgress !== ENROLLMENT_PROGRESS.PAYMENT_PENDING) {
-    throw new Error("Enrollment not in payment pending stage");
+    const error = new Error("Enrollment is not in the Paymnt Stage");
+    error.isOperational = true;
+    throw error;
   }
 
-  // =========================
-  // UPDATE PAYMENT BLOCK
-  // =========================
   enrollment.process.payment.status = "SUCCESS";
   enrollment.process.payment.paidAt = new Date();
   enrollment.process.payment.referenceId = referenceId;
 
-  // =========================
-  // UPDATE PROGRESS & STATUS
-  // =========================
   const progress = ENROLLMENT_PROGRESS.PAYMENT_COMPLETED;
 
   enrollment.enrollmentProgress = progress;
   enrollment.enrollmentStatus = ENROLLMENT_PROGRESS_STATUS_MAP[progress];
 
-  // =========================
-  // SAVE
-  // =========================
   await enrollment.save();
 };

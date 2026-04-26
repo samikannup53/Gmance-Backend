@@ -1,11 +1,17 @@
 import crypto from "crypto";
 import { Payment } from "../../models/payment.model.js";
 import { PaymentAttempt } from "../../models/paymentAttempt.model.js";
-import {handlePaymentSuccess} from "../../services/handlePaymentSuccess.service.js"
+import { handlePaymentSuccess } from "../../services/handlePaymentSuccess.service.js";
 import {
   PAYMENT_STATUS,
   PAYMENT_ATTEMPT_STATUS,
 } from "../../../../constants/payment.constants.js";
+
+const formatEntity = (entity) =>
+  entity
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 export const verifyGatewayPayment = async (req, res) => {
   try {
@@ -37,7 +43,7 @@ export const verifyGatewayPayment = async (req, res) => {
     // FETCH PAYMENT + ATTEMPT
     // =========================
     const payment = await Payment.findById(paymentId);
-    const attempt = await PaymentAttempt.findById(payment.currentAttemptId);
+    const attempt = await PaymentAttempt.findById(payment?.currentAttemptId);
 
     if (!payment || !attempt) {
       return res.status(404).json({
@@ -47,33 +53,60 @@ export const verifyGatewayPayment = async (req, res) => {
     }
 
     // =========================
-    // UPDATE ATTEMPT
+    // UPDATE ATTEMPT + PAYMENT
     // =========================
     attempt.status = PAYMENT_ATTEMPT_STATUS.SUCCESS;
     attempt.gateway.paymentId = razorpay_payment_id;
     attempt.lifecycle.paidAt = new Date();
 
-    // =========================
-    // UPDATE PAYMENT
-    // =========================
     payment.status = PAYMENT_STATUS.SUCCESS;
 
     await attempt.save();
     await payment.save();
 
     // =========================
-    // TRIGGER BENEFITS
+    // POST PAYMENT
     // =========================
-    if (payment.status === PAYMENT_STATUS.SUCCESS) {
+    try {
       await handlePaymentSuccess(payment);
-    }
 
-    return res.status(200).json({
-      success: true,
-      message: "Payment verified successfully",
-    });
+      return res.status(200).json({
+        success: true,
+        message: "Payment successful",
+      });
+    } catch (error) {
+      // Business errors
+      if (error.isOperational) {
+        return res.status(200).json({
+          success: true,
+          message: `Payment successful. However, ${error.message}`,
+        });
+      }
+
+      // System errors
+      console.error("[verifyGatewayPayment] PostPayment Error:", {
+        message: error.message,
+        stack: error.stack,
+        paymentId,
+        time: new Date().toISOString(),
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Payment successful. However, ${formatEntity(
+          payment.entityType,
+        )} update failed. Please retry.`,
+      });
+    }
   } catch (error) {
-    console.error(error);
+    // System / Unexpected Errors
+    console.error("[verifyGatewayPayment] System Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      time: new Date().toISOString(),
+    });
+
     return res.status(500).json({
       success: false,
       message: "Verification failed",
